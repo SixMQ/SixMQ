@@ -1,0 +1,3 @@
+#!/bin/bash
+
+php $(cd `dirname $0`; pwd)/sixmq.php $* -appNamespace "SixMQ"
