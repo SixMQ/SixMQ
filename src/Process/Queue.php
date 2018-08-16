@@ -28,7 +28,7 @@ class Queue extends BaseProcess
 	{
 		PoolManager::use('redis', function($source, $redis) use($queueId){
 			$workingMessageSetKey = RedisKey::getWorkingMessageSet($queueId);
-			$list = $redis->zrevrangebyscore($workingMessageSetKey, time(), 0, []);
+			$list = $redis->zrevrangebyscore($workingMessageSetKey, microtime(true), 0, []);
 			foreach($list as $messageId)
 			{
 				// 消息执行超时

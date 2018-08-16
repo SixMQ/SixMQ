@@ -11,6 +11,7 @@ use SixMQ\Util\QueueCollection;
 use Imi\Server\Route\Annotation\Tcp\TcpRoute;
 use Imi\Server\Route\Annotation\Tcp\TcpAction;
 use Imi\Server\Route\Annotation\Tcp\TcpController;
+use SixMQ\Struct\Queue\Server\Reply;
 
 /**
  * @TcpController
@@ -42,7 +43,7 @@ class Queue extends Base
 			return $redis->exec();
 		});
 		$success = null !== $result;
-		$return = new BaseServerStruct($success);
+		$return = new Reply($success);
 		$this->reply($return);
 		// 队列记录
 		if($success && !QueueCollection::has($data->queueId))
@@ -69,7 +70,7 @@ class Queue extends Base
 				return false;
 			}
 			// 消息处理最大超时时间
-			$expireTime = time() + $data->maxExpire;
+			$expireTime = microtime(true) + $data->maxExpire;
 			// 加入工作集合
 			$redis->zadd(RedisKey::getWorkingMessageSet($data->queueId), $expireTime, $messageId);
 			// 取出消息
@@ -127,7 +128,7 @@ class Queue extends Base
 			// 运行事务
 			return $redis->exec();
 		});
-		$return = new BaseServerStruct(null !== $result);
+		$return = new Reply(null !== $result);
 		$this->reply($return);
 	}
 }

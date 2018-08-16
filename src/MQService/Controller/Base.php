@@ -9,8 +9,9 @@ abstract class Base extends \Imi\Controller\TcpController
 	 * @param \SixMQ\Struct\BaseServerStruct $data
 	 * @return void
 	 */
-	public function reply(\SixMQ\Struct\BaseServerStruct $data)
+	public function reply(\SixMQ\Struct\Queue\Server\Reply $data)
 	{
+		$data->flag = $this->data->getFormatData()->flag;
 		$this->server->getSwooleServer()->send($this->data->getFd(), $this->encodeMessage($data));
 	}
 }
