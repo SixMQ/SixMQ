@@ -26,7 +26,7 @@ abstract class RedisKey
 	 */
 	public static function getMessageQueue($queueId)
 	{
-		return 'quque_' . $queueId;
+		return 'sixmq_quque_' . $queueId;
 	}
 
 	/**
@@ -37,6 +37,11 @@ abstract class RedisKey
 	 */
 	public static function getWorkingMessageSet($queueId)
 	{
-		return 'working_set_' . $queueId;
+		return 'sixmq_working_set_' . $queueId;
+	}
+
+	public static function getQueueList()
+	{
+		return 'sixmq_quque_list';
 	}
 }

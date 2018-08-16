@@ -1,15 +1,16 @@
 <?php
 namespace SixMQ\MQService\Controller;
 
+use SixMQ\Util\RedisKey;
+use Imi\Pool\PoolManager;
+use SixMQ\Util\GenerateID;
+use SixMQ\Struct\Queue\Message;
+use SixMQ\Struct\BaseServerStruct;
+use SixMQ\Struct\Queue\Server\Pop;
+use SixMQ\Util\QueueCollection;
 use Imi\Server\Route\Annotation\Tcp\TcpRoute;
 use Imi\Server\Route\Annotation\Tcp\TcpAction;
 use Imi\Server\Route\Annotation\Tcp\TcpController;
-use SixMQ\Struct\BaseServerStruct;
-use Imi\Pool\PoolManager;
-use SixMQ\Util\GenerateID;
-use SixMQ\Struct\Queue\Server\Pop;
-use SixMQ\Util\RedisKey;
-use SixMQ\Struct\Queue\Message;
 
 /**
  * @TcpController
@@ -40,8 +41,14 @@ class Queue extends Base
 			// 运行事务
 			return $redis->exec();
 		});
-		$return = new BaseServerStruct(null !== $result);
+		$success = null !== $result;
+		$return = new BaseServerStruct($success);
 		$this->reply($return);
+		// 队列记录
+		if($success && !QueueCollection::has($data->queueId))
+		{
+			QueueCollection::append($data->queueId);
+		}
 	}
 
 	/**
@@ -61,8 +68,10 @@ class Queue extends Base
 			{
 				return false;
 			}
+			// 消息处理最大超时时间
+			$expireTime = time() + $data->maxExpire;
 			// 加入工作集合
-			$redis->sadd(RedisKey::getWorkingMessageSet($data->queueId), $messageId);
+			$redis->zadd(RedisKey::getWorkingMessageSet($data->queueId), $expireTime, $messageId);
 			// 取出消息
 			$message = $redis->get($messageId);
 			return true;
@@ -99,7 +108,7 @@ class Queue extends Base
 			$redis->multi();
 
 			// 移出集合队列
-			$redis->srem(RedisKey::getWorkingMessageSet($data->queueId), $data->messageId);
+			$redis->zrem(RedisKey::getWorkingMessageSet($data->queueId), $data->messageId);
 
 			$message->success = $data->success;
 			$message->resultData = $data->data;

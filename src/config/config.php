@@ -7,7 +7,8 @@ return [
 	'namespace'	=>	'SixMQ',
 	// 扫描目录
 	'beanScan'	=>	[
-		
+		'SixMQ\Process',
+		'SixMQ\InitListener',
 	],
 	// 主服务器配置
 	'mainServer'	=>	[
@@ -60,7 +61,7 @@ return [
 					],
 				],
 				'resource'	=>	[
-					'host'		=>	'127.0.0.1',
+					'host'		=>	'192.168.0.222',
 					'port'		=>	6379,
 					// 密码
 					// 'password'	=>	'',
@@ -77,7 +78,7 @@ return [
 					],
 				],
 				'resource'	=>	[
-					'host'		=>	'127.0.0.1',
+					'host'		=>	'192.168.0.222',
 					'port'		=>	6379,
 					// 密码
 					// 'password'	=>	'',
