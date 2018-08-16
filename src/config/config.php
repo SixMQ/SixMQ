@@ -8,7 +8,7 @@ return [
 	// 扫描目录
 	'beanScan'	=>	[
 		'SixMQ\Process',
-		'SixMQ\InitListener',
+		'SixMQ\Listener',
 	],
 	// 主服务器配置
 	'mainServer'	=>	[

@@ -1,5 +1,5 @@
 <?php
-namespace SixMQ\InitListener;
+namespace SixMQ\Listener;
 
 use Imi\Task\TaskInfo;
 use Imi\Task\TaskParam;
