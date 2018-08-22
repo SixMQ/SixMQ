@@ -6,6 +6,7 @@ use Imi\Process\Annotation\Process;
 use Imi\Pool\PoolManager;
 use SixMQ\Util\RedisKey;
 use SixMQ\Util\QueueCollection;
+use SixMQ\Service\QueueService;
 
 /**
  * @Process(name="SixMQQueueMonitor", unique=true)
@@ -31,22 +32,7 @@ class Queue extends BaseProcess
 			$list = $redis->zrevrangebyscore($workingMessageSetKey, microtime(true), 0, []);
 			foreach($list as $messageId)
 			{
-				// 消息执行超时
-				$message = $redis->get($messageId);
-
-				// 移出集合队列
-				$redis->zrem($workingMessageSetKey, $messageId);
-
-				$message->success = false;
-				$message->resultData = 'timeout';
-
-				// 加入队列
-				$redis->rpush(RedisKey::getMessageQueue($queueId), $messageId);
-				$message->inTime = time();
-
-				// 设置消息数据
-				var_dump($message);
-				$redis->set($messageId, $message);
+				QueueService::expireMessage($queueId, $messageId);
 			}
 		});
 	}

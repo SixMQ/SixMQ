@@ -9,13 +9,14 @@ return [
 	'beanScan'	=>	[
 		'SixMQ\Process',
 		'SixMQ\Listener',
+		'SixMQ\Service',
 	],
 	// 主服务器配置
 	'mainServer'	=>	[
 		'namespace'	=>	'SixMQ\Web',
 		'type'		=>	Type::HTTP,
 		'host'		=>	'0.0.0.0',
-		'port'		=>	8080,
+		'port'		=>	8089,
 		'configs'	=>	[
 			// 开发时可以都设为1
 			'worker_num'		=>	1,
@@ -87,5 +88,8 @@ return [
 				]
 			],
 		],
+	],
+	'coroutineChannels'		=>	[
+		'BlockQueue'	=>	[64 * 1024],
 	],
 ];
