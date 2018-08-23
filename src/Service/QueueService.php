@@ -160,6 +160,8 @@ abstract class QueueService
 			// 设置消息数据
 			$redis->set($messageId, $message);
 		});
+		// 处理push阻塞推送
+		static::parsePushBlock($messageId);
 	}
 
 	/**
@@ -223,14 +225,8 @@ abstract class QueueService
 			return $redis->exec();
 		});
 		$return = new Reply(null !== $result);
-		$server = RequestContext::get('server');
 		// 处理push阻塞推送
-		go(function() use($data, $server){
-			RequestContext::create();
-			RequestContext::set('server', $server);
-			QueuePushBlockParser::complete($data->messageId);
-			RequestContext::destroy();
-		});
+		static::parsePushBlock($data->messageId);
 		return $return;
 	}
 
@@ -246,5 +242,23 @@ abstract class QueueService
 			return $redis->get($messageId);
 		});
 		return $result;
+	}
+
+	/**
+	 * 处理push阻塞推送
+	 *
+	 * @param string $messageId
+	 * @return void
+	 */
+	private static function parsePushBlock($messageId)
+	{
+		$server = RequestContext::get('server');
+		// 处理push阻塞推送
+		go(function() use($messageId, $server){
+			RequestContext::create();
+			RequestContext::set('server', $server);
+			QueuePushBlockParser::complete($messageId);
+			RequestContext::destroy();
+		});
 	}
 }
