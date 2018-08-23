@@ -90,6 +90,6 @@ return [
 		],
 	],
 	'coroutineChannels'		=>	[
-		'BlockQueue'	=>	[64 * 1024],
+		'PopBlockQueue'		=>	[64 * 1024],
 	],
 ];
