@@ -15,6 +15,7 @@ class Queue extends BaseProcess
 {
 	public function run(\Swoole\Process $process)
 	{
+		echo 'Process [SixMQQueueMonitor] start', PHP_EOL;
 		while(true)
 		{
 			foreach(QueueCollection::getList() as $queueId)
