@@ -13,6 +13,7 @@ use Imi\Util\CoroutineChannelManager;
 use SixMQ\Struct\Queue\Server\Push;
 use Imi\RequestContext;
 use SixMQ\Util\QueuePushBlockParser;
+use Imi\ServerManage;
 
 abstract class QueueService
 {
@@ -92,7 +93,15 @@ abstract class QueueService
 				{
 					break;
 				}
-			}while(ConnectContext::exsits() && !($result = static::tryPop($data, $messageId, $message)));
+			}while(($connectContextExists = ConnectContext::exsits()) && !($result = static::tryPop($data, $messageId, $message)));
+			// 阻塞请求支持，如果当前是连接断开，把阻塞请求让给别的连接处理
+			if(!$connectContextExists && CoroutineChannelManager::stats('PopBlockQueue')['consumer_num'] > 0)
+			{
+				if(CoroutineChannelManager::stats('PopBlockQueue')['consumer_num'] > 0)
+				{
+					CoroutineChannelManager::push('PopBlockQueue', true);
+				}
+			}
 		}
 		$return = new Pop($result);
 		if($result)
@@ -206,6 +215,9 @@ abstract class QueueService
 			// 移出集合队列
 			$redis->zrem(RedisKey::getWorkingMessageSet($data->queueId), $data->messageId);
 
+			// 移除队列（先触发了失败重新入队，尝试出列）
+			$redis->lrem(RedisKey::getMessageQueue($data->queueId), $data->messageId, 1);
+
 			$message->consum = true;
 			$message->success = $data->success;
 			$message->resultData = $data->data;
@@ -252,7 +264,14 @@ abstract class QueueService
 	 */
 	private static function parsePushBlock($messageId)
 	{
-		$server = RequestContext::get('server');
+		if(RequestContext::exsits())
+		{
+			$server = RequestContext::get('server');
+		}
+		else
+		{
+			$server = ServerManage::getServer('MQService');
+		}
 		// 处理push阻塞推送
 		go(function() use($messageId, $server){
 			RequestContext::create();

@@ -50,7 +50,6 @@ class Queue extends Base
 	public function pop($data)
 	{
 		$reply = QueueService::pop($data);
-		$this->server->getSwooleServer();
 		if(!$this->reply($reply) && $reply->success)
 		{
 			// 发送失败，回队列

@@ -36,7 +36,7 @@ abstract class HashTable
 	 *
 	 * @param string $hashTableName
 	 * @param string $fieldName
-	 * @return mixed|null
+	 * @return mixed|boolean
 	 */
 	public static function get($hashTableName, $fieldName)
 	{

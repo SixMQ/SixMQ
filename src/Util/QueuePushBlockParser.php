@@ -34,10 +34,9 @@ abstract class QueuePushBlockParser
 	public static function complete($messageId)
 	{
 		$data = HashTable::get(HashTableNames::QUEUE_PUSH_BLOCK, $messageId);
-		if(null !== $data)
+		if(isset($data['fd']))
 		{
 			$message = QueueService::getMessage($messageId);
-			var_dump($message);
 			$data['serverPush']->consum = $message->consum;
 			$data['serverPush']->resultSuccess = $message->success;
 			$data['serverPush']->resultData = $message->resultData;
