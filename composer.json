@@ -6,7 +6,7 @@
     "require": {
         "php": ">=7.0.0",
         "yurunsoft/imi": "dev-master",
-		"yurunsoft/sixmq-struct": "dev-master"
+		"sixmq/sixmq-struct": "dev-master"
     },
     "require-dev": {
         "swoft/swoole-ide-helper": "~2.0"
