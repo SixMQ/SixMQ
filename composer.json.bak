@@ -1,5 +1,5 @@
 {
-	"name": "yurunsoft/sixmq",
+	"name": "sixmq/sixmq",
 	"type": "project",
     "license": "Apache-2.0",
 	"description": "SixMQ 是基于 IMI 框架 (PHP + Swoole) 开发的 PHP 消息队列",
