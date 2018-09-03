@@ -2,19 +2,20 @@
 namespace SixMQ\Service;
 
 use Imi\Config;
+use Imi\ServerManage;
 use Imi\ConnectContext;
+use Imi\RequestContext;
 use SixMQ\Util\RedisKey;
 use Imi\Pool\PoolManager;
+use SixMQ\Util\GenerateID;
+use SixMQ\Util\QueueError;
 use SixMQ\Struct\Queue\Message;
 use SixMQ\Util\QueueCollection;
 use SixMQ\Struct\Queue\Server\Pop;
-use SixMQ\Struct\Queue\Server\Reply;
-use Imi\Util\CoroutineChannelManager;
 use SixMQ\Struct\Queue\Server\Push;
-use Imi\RequestContext;
+use SixMQ\Struct\Queue\Server\Reply;
 use SixMQ\Util\QueuePushBlockParser;
-use Imi\ServerManage;
-use SixMQ\Util\QueueError;
+use Imi\Util\CoroutineChannelManager;
 
 abstract class QueueService
 {
@@ -29,7 +30,8 @@ abstract class QueueService
 		$messageId = null;
 		$result = PoolManager::use('redis', function($resource, $redis) use($data, &$messageId){
 			// 生成消息ID
-			$messageId = RedisKey::getMessageId();
+			$messageId = GenerateID::get();
+			$messageIdKey = RedisKey::getMessageId($messageId);
 			// 开启事务
 			$redis->multi();
 			// 保存消息
@@ -37,7 +39,7 @@ abstract class QueueService
 			$message->queueId = $data->queueId;
 			$message->retry = $data->retry;
 			$message->timeout = $data->timeout;
-			$redis->set($messageId, $message);
+			$redis->set($messageIdKey, $message);
 			// 加入消息队列
 			$redis->rpush(RedisKey::getMessageQueue($data->queueId), $messageId);
 			// 加入超时队列
@@ -139,7 +141,7 @@ abstract class QueueService
 				return false;
 			}
 			// 取出消息
-			$message = $redis->get($messageId);
+			$message = $redis->get(RedisKey::getMessageId($messageId));
 			// 消息超时判断
 			if($message->inTime + $message->timeout <= microtime(true))
 			{
@@ -166,7 +168,7 @@ abstract class QueueService
 			$workingMessageSetKey = RedisKey::getWorkingMessageSet($queueId);
 
 			// 消息执行超时
-			$message = $redis->get($messageId);
+			$message = $redis->get(RedisKey::getMessageId($messageId));
 
 			// 移出工作集合
 			$redis->zrem($workingMessageSetKey, $messageId);
@@ -184,7 +186,7 @@ abstract class QueueService
 
 			$message->consum = false;
 			// 设置消息数据
-			$redis->set($messageId, $message);
+			$redis->set(RedisKey::getMessageId($messageId), $message);
 		});
 		// 处理push阻塞推送
 		static::parsePushBlock($messageId);
@@ -220,7 +222,7 @@ abstract class QueueService
 	{
 		$result = PoolManager::use('redis', function($resource, $redis) use($data){
 			// 取出消息数据
-			$message = $redis->get($data->messageId);
+			$message = $redis->get(RedisKey::getMessageId($data->messageId));
 
 			if(false === $message)
 			{
@@ -240,7 +242,7 @@ abstract class QueueService
 			$message->resultData = $data->data;
 
 			// 设置消息数据
-			$redis->set($data->messageId, $message);
+			$redis->set(RedisKey::getMessageId($data->messageId), $message);
 
 			// 运行事务
 			return $redis->exec();
@@ -260,7 +262,7 @@ abstract class QueueService
 	public static function getMessage($messageId)
 	{
 		$result = PoolManager::use('redis', function($resource, $redis) use($messageId){
-			return $redis->get($messageId);
+			return $redis->get(RedisKey::getMessageId($messageId));
 		});
 		return $result;
 	}
@@ -306,7 +308,7 @@ abstract class QueueService
 			$expireMessageSetKey = RedisKey::getQueueExpireSet($queueId);
 
 			// 消息执行超时
-			$message = $redis->get($messageId);
+			$message = $redis->get(RedisKey::getMessageId($messageId));
 
 			// 移出工作集合
 			$redis->zrem($expireMessageSetKey, $messageId);
@@ -315,7 +317,7 @@ abstract class QueueService
 			$message->resultData = 'message timeout';
 
 			// 设置消息数据
-			$redis->set($messageId, $message);
+			$redis->set(RedisKey::getMessageId($messageId), $message);
 		});
 		// 处理push阻塞推送
 		static::parsePushBlock($messageId);

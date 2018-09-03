@@ -13,7 +13,7 @@ abstract class HashTable
 	 */
 	public static function init($hashTableName)
 	{
-		static::clear($hashTableName);
+		static::clear(static::getHashTableKey($hashTableName));
 	}
 
 	/**
@@ -27,7 +27,7 @@ abstract class HashTable
 	public static function set($hashTableName, $fieldName, $value)
 	{
 		return PoolManager::use('redis', function($resource, $redis) use($hashTableName, $fieldName, $value){
-			return $redis->hset($hashTableName, $fieldName, $value);
+			return $redis->hset(static::getHashTableKey($hashTableName), $fieldName, $value);
 		});
 	}
 
@@ -41,7 +41,7 @@ abstract class HashTable
 	public static function get($hashTableName, $fieldName)
 	{
 		return PoolManager::use('redis', function($resource, $redis) use($hashTableName, $fieldName){
-			return $redis->hget($hashTableName, $fieldName);
+			return $redis->hget(static::getHashTableKey($hashTableName), $fieldName);
 		});
 	}
 
@@ -55,7 +55,7 @@ abstract class HashTable
 	public static function del($hashTableName, $fieldName)
 	{
 		return PoolManager::use('redis', function($resource, $redis) use($hashTableName, $fieldName){
-			return $redis->hdel($hashTableName, $fieldName);
+			return $redis->hdel(static::getHashTableKey($hashTableName), $fieldName);
 		}) > 0;
 	}
 
@@ -69,7 +69,7 @@ abstract class HashTable
 	public static function exists($hashTableName, $fieldName)
 	{
 		return PoolManager::use('redis', function($resource, $redis) use($hashTableName, $fieldName){
-			return $redis->hexists($hashTableName, $fieldName);
+			return $redis->hexists(static::getHashTableKey($hashTableName), $fieldName);
 		});
 	}
 
@@ -82,7 +82,7 @@ abstract class HashTable
 	public static function clear($hashTableName)
 	{
 		return PoolManager::use('redis', function($resource, $redis) use($hashTableName){
-			return $redis->del($hashTableName);
+			return $redis->del(static::getHashTableKey($hashTableName));
 		}) > 0;
 	}
 
@@ -95,7 +95,7 @@ abstract class HashTable
 	public static function count($hashTableName)
 	{
 		return PoolManager::use('redis', function($resource, $redis) use($hashTableName){
-			return $redis->hlen($hashTableName);
+			return $redis->hlen(static::getHashTableKey($hashTableName));
 		});
 	}
 
@@ -108,7 +108,18 @@ abstract class HashTable
 	public static function keys($hashTableName)
 	{
 		return PoolManager::use('redis', function($resource, $redis) use($hashTableName){
-			return $redis->hkeys($hashTableName);
+			return $redis->hkeys(static::getHashTableKey($hashTableName));
 		});
+	}
+
+	/**
+	 * 获取HashTable键
+	 *
+	 * @param string $hashTableName
+	 * @return string
+	 */
+	public static function getHashTableKey($hashTableName)
+	{
+		return 'sixmq:hash_tables:' . $hashTableName;
 	}
 }

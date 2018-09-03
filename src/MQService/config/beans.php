@@ -5,13 +5,13 @@ return [
 	],
 	'GroupRedis'	=>	[
 		'redisPool'	=>	'redis',
-		'key'		=>	'SIXMQ.TCP.GROUP',
+		'key'		=>	'sixmq:tcp_group',
 		'heartbeatTimespan'	=>	5, // 心跳时间，单位：秒
 		'heartbeatTtl'	=>	8, // 心跳数据过期时间，单位：秒
 	],
 	'ConnectContextRedis'	=>	[
 		'redisPool'	=>	'redis',
-		'key'		=>	'SIXMQ.TCP.CONNECT_CONTEXT',
+		'key'		=>	'sixmq:tcp_connect_context',
 		'heartbeatTimespan'	=>	5, // 心跳时间，单位：秒
 		'heartbeatTtl'	=>	8, // 心跳数据过期时间，单位：秒
 	],

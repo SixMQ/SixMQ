@@ -15,7 +15,7 @@ abstract class RedisKey
 	 */
 	public static function getDailyMessageIdCount()
 	{
-		return 'sixmq_daily_message_count';
+		return 'sixmq:daily_message_count';
 	}
 
 	/**
@@ -23,9 +23,9 @@ abstract class RedisKey
 	 *
 	 * @return string
 	 */
-	public static function getMessageId()
+	public static function getMessageId($messageId)
 	{
-		return GenerateID::get();
+		return 'sixmq:message:' . $messageId;
 	}
 
 	/**
@@ -36,7 +36,7 @@ abstract class RedisKey
 	 */
 	public static function getMessageQueue($queueId)
 	{
-		return 'sixmq_quque_' . $queueId;
+		return 'sixmq:quque:' . $queueId;
 	}
 
 	/**
@@ -47,7 +47,7 @@ abstract class RedisKey
 	 */
 	public static function getWorkingMessageSet($queueId)
 	{
-		return 'sixmq_working_set_' . $queueId;
+		return 'sixmq:working_set:' . $queueId;
 	}
 
 	/**
@@ -58,7 +58,7 @@ abstract class RedisKey
 	 */
 	public static function getQueueExpireSet($queueId)
 	{
-		return 'sixmq_queue_expire_' . $queueId;
+		return 'sixmq:queue_expire:' . $queueId;
 	}
 
 	/**
@@ -68,7 +68,7 @@ abstract class RedisKey
 	 */
 	public static function getQueueList()
 	{
-		return 'sixmq_quque_list';
+		return 'sixmq:quque_list';
 	}
 
 	/**
@@ -78,6 +78,7 @@ abstract class RedisKey
 	 */
 	public static function getMessageErrorCount()
 	{
-		return 'sixmq_message_error_count';
+		return 'sixmq:message_error_count';
 	}
+
 }
