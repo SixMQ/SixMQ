@@ -40,6 +40,11 @@ abstract class RedisKey
 		return 'sixmq_working_set_' . $queueId;
 	}
 
+	/**
+	 * 获取队列列表
+	 *
+	 * @return string
+	 */
 	public static function getQueueList()
 	{
 		return 'sixmq_quque_list';
