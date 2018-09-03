@@ -9,6 +9,16 @@ use SixMQ\Util\GenerateID;
 abstract class RedisKey
 {
 	/**
+	 * 获取每日消息ID统计
+	 *
+	 * @return void
+	 */
+	public static function getDailyMessageIdCount()
+	{
+		return 'sixmq_daily_message_count';
+	}
+
+	/**
 	 * 获取消息ID
 	 *
 	 * @return string

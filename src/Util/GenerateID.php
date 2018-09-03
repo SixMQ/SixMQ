@@ -55,7 +55,7 @@ abstract class GenerateID
 		$time = time();
 		$id = PoolManager::use('redis', function($resource, $redis) use($time){
 			$key = static::parseRule(Config::get('@app.common.redis_id_key'), $time);
-			return $redis->incr($key);
+			return $redis->hIncrBy(RedisKey::getDailyMessageIdCount(), $key, 1);
 		});
 		return static::parseRule(Config::get('@app.common.id_format'), $time, [
 			'id'	=>	$id,
