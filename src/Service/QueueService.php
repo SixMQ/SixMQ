@@ -14,6 +14,7 @@ use SixMQ\Struct\Queue\Server\Push;
 use Imi\RequestContext;
 use SixMQ\Util\QueuePushBlockParser;
 use Imi\ServerManage;
+use SixMQ\Util\QueueError;
 
 abstract class QueueService
 {
@@ -34,17 +35,15 @@ abstract class QueueService
 			// 保存消息
 			$message = new Message($data->data, $messageId);
 			$message->queueId = $data->queueId;
-			if($data->timeout > -1)
-			{
-				$message->expireTime = microtime(true) + $data->timeout;
-			}
+			$message->retry = $data->retry;
+			$message->timeout = $data->timeout;
 			$redis->set($messageId, $message);
 			// 加入消息队列
 			$redis->rpush(RedisKey::getMessageQueue($data->queueId), $messageId);
 			// 加入超时队列
 			if($data->timeout > -1)
 			{
-				$redis->zadd(RedisKey::getQueueExpireSet($data->queueId), $message->expireTime, $messageId);
+				$redis->zadd(RedisKey::getQueueExpireSet($data->queueId), microtime(true) + $data->timeout, $messageId);
 			}
 			// 运行事务
 			return $redis->exec();
@@ -142,7 +141,7 @@ abstract class QueueService
 			// 取出消息
 			$message = $redis->get($messageId);
 			// 消息超时判断
-			if($message->expireTime <= microtime(true))
+			if($message->inTime + $message->timeout <= microtime(true))
 			{
 				return false;
 			}
@@ -175,11 +174,15 @@ abstract class QueueService
 			$message->success = false;
 			$message->resultData = 'task timeout';
 
-			// 加入队列
-			$redis->rpush(RedisKey::getMessageQueue($queueId), $messageId);
-			$message->inTime = time();
-			$message->consum = false;
+			// 失败重试次数限制
+			if(QueueError::inc($messageId) < $message->retry)
+			{
+				// 加入队列
+				$redis->rpush(RedisKey::getMessageQueue($queueId), $messageId);
+				$message->inTime = microtime(true);
+			}
 
+			$message->consum = false;
 			// 设置消息数据
 			$redis->set($messageId, $message);
 		});
@@ -235,14 +238,6 @@ abstract class QueueService
 			$message->consum = true;
 			$message->success = $data->success;
 			$message->resultData = $data->data;
-
-			// 消息消费失败
-			if(!$data->success)
-			{
-				// 加入队列
-				$redis->rpush(RedisKey::getMessageQueue($data->queueId), $data->messageId);
-				$message->inTime = time();
-			}
 
 			// 设置消息数据
 			$redis->set($data->messageId, $message);

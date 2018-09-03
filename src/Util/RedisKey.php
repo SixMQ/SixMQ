@@ -60,4 +60,14 @@ abstract class RedisKey
 	{
 		return 'sixmq_quque_list';
 	}
+
+	/**
+	 * 获取消息错误计数
+	 *
+	 * @return string
+	 */
+	public static function getMessageErrorCount()
+	{
+		return 'sixmq_message_error_count';
+	}
 }
