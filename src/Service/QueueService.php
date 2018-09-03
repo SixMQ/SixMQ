@@ -34,9 +34,18 @@ abstract class QueueService
 			// 保存消息
 			$message = new Message($data->data, $messageId);
 			$message->queueId = $data->queueId;
+			if($data->timeout > -1)
+			{
+				$message->expireTime = microtime(true) + $data->timeout;
+			}
 			$redis->set($messageId, $message);
 			// 加入消息队列
 			$redis->rpush(RedisKey::getMessageQueue($data->queueId), $messageId);
+			// 加入超时队列
+			if($data->timeout > -1)
+			{
+				$redis->zadd(RedisKey::getQueueExpireSet($data->queueId), $message->expireTime, $messageId);
+			}
 			// 运行事务
 			return $redis->exec();
 		});
@@ -130,24 +139,29 @@ abstract class QueueService
 			{
 				return false;
 			}
+			// 取出消息
+			$message = $redis->get($messageId);
+			// 消息超时判断
+			if($message->expireTime <= microtime(true))
+			{
+				return false;
+			}
 			// 消息处理最大超时时间
 			$expireTime = microtime(true) + $data->maxExpire;
 			// 加入工作集合
 			$redis->zadd(RedisKey::getWorkingMessageSet($data->queueId), $expireTime, $messageId);
-			// 取出消息
-			$message = $redis->get($messageId);
 			return true;
 		});
 	}
 
 	/**
-	 * 消息超时处理
+	 * 任务超时处理
 	 *
 	 * @param string $queueId
 	 * @param string $messageId
 	 * @return void
 	 */
-	public static function expireMessage($queueId, $messageId)
+	public static function expireTask($queueId, $messageId)
 	{
 		PoolManager::use('redis', function($source, $redis) use($queueId, $messageId){
 			$workingMessageSetKey = RedisKey::getWorkingMessageSet($queueId);
@@ -159,7 +173,7 @@ abstract class QueueService
 			$redis->zrem($workingMessageSetKey, $messageId);
 
 			$message->success = false;
-			$message->resultData = 'timeout';
+			$message->resultData = 'task timeout';
 
 			// 加入队列
 			$redis->rpush(RedisKey::getMessageQueue($queueId), $messageId);
@@ -279,5 +293,36 @@ abstract class QueueService
 			QueuePushBlockParser::complete($messageId);
 			RequestContext::destroy();
 		});
+	}
+
+	/**
+	 * 消息超时处理
+	 *
+	 * @param string $queueId
+	 * @param string $messageId
+	 * @return void
+	 */
+	public static function expireMessage($queueId, $messageId)
+	{
+		PoolManager::use('redis', function($source, $redis) use($queueId, $messageId){
+			// 移出队列
+			$redis->lrem(RedisKey::getMessageQueue($queueId), $messageId, 1);
+
+			$expireMessageSetKey = RedisKey::getQueueExpireSet($queueId);
+
+			// 消息执行超时
+			$message = $redis->get($messageId);
+
+			// 移出工作集合
+			$redis->zrem($expireMessageSetKey, $messageId);
+
+			$message->success = false;
+			$message->resultData = 'message timeout';
+
+			// 设置消息数据
+			$redis->set($messageId, $message);
+		});
+		// 处理push阻塞推送
+		static::parsePushBlock($messageId);
 	}
 }

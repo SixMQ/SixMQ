@@ -41,6 +41,17 @@ abstract class RedisKey
 	}
 
 	/**
+	 * 获取超时队列
+	 *
+	 * @param string $queueId
+	 * @return string
+	 */
+	public static function getQueueExpireSet($queueId)
+	{
+		return 'sixmq_queue_expire_' . $queueId;
+	}
+
+	/**
 	 * 获取队列列表
 	 *
 	 * @return string
