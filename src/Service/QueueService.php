@@ -143,7 +143,7 @@ abstract class QueueService
 			// 取出消息
 			$message = $redis->get(RedisKey::getMessageId($messageId));
 			// 消息超时判断
-			if($message->inTime + $message->timeout <= microtime(true))
+			if($message->timeout > -1 && $message->inTime + $message->timeout <= microtime(true))
 			{
 				return false;
 			}
