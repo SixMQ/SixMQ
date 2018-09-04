@@ -13,6 +13,7 @@ use SixMQ\Struct\Queue\Message;
 use SixMQ\Util\QueueCollection;
 use SixMQ\Struct\Queue\Server\Pop;
 use SixMQ\Struct\Queue\Server\Push;
+use SixMQ\Util\QueuePopBlockParser;
 use SixMQ\Struct\Queue\Server\Reply;
 use SixMQ\Util\QueuePushBlockParser;
 use Imi\Util\CoroutineChannelManager;
@@ -67,11 +68,7 @@ abstract class QueueService
 			{
 				QueueCollection::append($data->queueId);
 			}
-			// 阻塞请求支持
-			if(CoroutineChannelManager::stats('PopBlockQueue')['consumer_num'] > 0)
-			{
-				CoroutineChannelManager::push('PopBlockQueue', true);
-			}
+			static::parsePopBlock($data->queueId);
 		});
 		return $return;
 	}
@@ -80,38 +77,19 @@ abstract class QueueService
 	 * 消息出队列
 	 *
 	 * @param \SixMQ\Struct\Queue\Client\Pop $data
-	 * @return \SixMQ\Struct\Queue\Server\Pop
+	 * @param \Redis|\Swoole\Coroutine\Redis $redis
+	 * @return \SixMQ\Struct\Queue\Server\Pop|null
 	 */
-	public static function pop($data)
+	public static function pop($data, $redis = null)
 	{
-		$result = static::tryPop($data, $messageId, $message);
+		$result = static::tryPop($data, $messageId, $message, $redis);
 
 		if(!$result && 0 !== $data->block)
 		{
-			if($data->block > 0)
-			{
-				$maxWaitTime = min(Config::get('@app.common.queue_block_time'), $data->block);
-			}
-			else
-			{
-				$maxWaitTime = PHP_INT_MAX;
-			}
-			$beginTime = microtime(true);
-			// 没有可弹出的消息，并且是阻塞请求
-			do{
-				if(!CoroutineChannelManager::pop('PopBlockQueue', $maxWaitTime - (microtime(true) - $beginTime)))
-				{
-					break;
-				}
-			}while(($connectContextExists = ConnectContext::exsits()) && !($result = static::tryPop($data, $messageId, $message)));
-			// 阻塞请求支持，如果当前是连接断开，把阻塞请求让给别的连接处理
-			if(!$connectContextExists && CoroutineChannelManager::stats('PopBlockQueue')['consumer_num'] > 0)
-			{
-				if(CoroutineChannelManager::stats('PopBlockQueue')['consumer_num'] > 0)
-				{
-					CoroutineChannelManager::push('PopBlockQueue', true);
-				}
-			}
+			$return = new Pop($result);
+			$fd = RequestContext::get('fd');
+			QueuePopBlockParser::add($fd, $data);
+			return null;
 		}
 		$return = new Pop($result);
 		if($result)
@@ -129,21 +107,22 @@ abstract class QueueService
 	 * @param \SixMQ\Struct\Queue\Client\Pop $data
 	 * @param string $messageId
 	 * @param string $message
+	 * @param \Redis|\Swoole\Coroutine\Redis $redis
 	 * @return boolean
 	 */
-	private static function tryPop($data, &$messageId, &$message)
+	private static function tryPop($data, &$messageId, &$message, $redis = null)
 	{
-		return PoolManager::use('redis', function($resource, $redis) use($data, &$messageId, &$message){
+		$func = function($resource, $redis) use($data, &$messageId, &$message){
 			// 取出消息ID
 			$messageId = $redis->lpop(RedisKey::getMessageQueue($data->queueId));
-			if(null === $messageId)
+			if(!$messageId)
 			{
 				return false;
 			}
 			// 取出消息
 			$message = $redis->get(RedisKey::getMessageId($messageId));
 			// 消息超时判断
-			if($message->timeout > -1 && $message->inTime + $message->timeout <= microtime(true))
+			if(!$message || ($message->timeout > -1 && $message->inTime + $message->timeout <= microtime(true)))
 			{
 				return false;
 			}
@@ -152,7 +131,15 @@ abstract class QueueService
 			// 加入工作集合
 			$redis->zadd(RedisKey::getWorkingMessageSet($data->queueId), $expireTime, $messageId);
 			return true;
-		});
+		};
+		if(null === $redis)
+		{
+			return PoolManager::use('redis', $func);
+		}
+		else
+		{
+			return $func(null, $redis);
+		}
 	}
 
 	/**
@@ -175,6 +162,9 @@ abstract class QueueService
 
 			$message->success = false;
 			$message->resultData = 'task timeout';
+			$message->consum = false;
+			// 设置消息数据
+			$redis->set(RedisKey::getMessageId($messageId), $message);
 
 			// 失败重试次数限制
 			if(QueueError::inc($messageId) < $message->retry)
@@ -182,11 +172,10 @@ abstract class QueueService
 				// 加入队列
 				$redis->rpush(RedisKey::getMessageQueue($queueId), $messageId);
 				$message->inTime = microtime(true);
+				go(function() use($queueId){
+					static::parsePopBlock($queueId);
+				});
 			}
-
-			$message->consum = false;
-			// 设置消息数据
-			$redis->set(RedisKey::getMessageId($messageId), $message);
 		});
 		// 处理push阻塞推送
 		static::parsePushBlock($messageId);
@@ -210,6 +199,9 @@ abstract class QueueService
 			// 加入队列
 			$redis->lpush(RedisKey::getMessageQueue($queueId), $messageId);
 		});
+		go(function() use($queueId){
+			static::parsePopBlock($queueId);
+		});
 	}
 
 	/**
@@ -224,7 +216,7 @@ abstract class QueueService
 			// 取出消息数据
 			$message = $redis->get(RedisKey::getMessageId($data->messageId));
 
-			if(false === $message)
+			if(!$message)
 			{
 				return null;
 			}
@@ -288,6 +280,31 @@ abstract class QueueService
 			RequestContext::create();
 			RequestContext::set('server', $server);
 			QueuePushBlockParser::complete($messageId);
+			RequestContext::destroy();
+		});
+	}
+
+	/**
+	 * 处理pop阻塞推送
+	 *
+	 * @param string $queueId
+	 * @return void
+	 */
+	private static function parsePopBlock($queueId)
+	{
+		if(RequestContext::exsits())
+		{
+			$server = RequestContext::get('server');
+		}
+		else
+		{
+			$server = ServerManage::getServer('MQService');
+		}
+		// 处理push阻塞推送
+		go(function() use($queueId, $server){
+			RequestContext::create();
+			RequestContext::set('server', $server);
+			QueuePopBlockParser::complete($queueId);
 			RequestContext::destroy();
 		});
 	}

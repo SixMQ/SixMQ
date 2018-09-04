@@ -21,7 +21,9 @@ abstract class QueuePushBlockParser
 		$return->flag = $data->flag;
 		HashTable::set(HashTableNames::QUEUE_PUSH_BLOCK, $return->messageId, [
 			'fd'			=>	$fd,
+			'pushData'		=>	$data,
 			'serverPush'	=>	$return,
+			'time'			=>	microtime(true),
 		]);
 	}
 
@@ -34,13 +36,13 @@ abstract class QueuePushBlockParser
 	public static function complete($messageId)
 	{
 		$data = HashTable::get(HashTableNames::QUEUE_PUSH_BLOCK, $messageId);
-		if(isset($data['fd']))
+		HashTable::del(HashTableNames::QUEUE_PUSH_BLOCK, $messageId);
+		if(isset($data['fd']) && (-1 === $data['pushData']->block || $data['time'] + $data['pushData']->block > microtime(true)))
 		{
 			$message = QueueService::getMessage($messageId);
 			$data['serverPush']->consum = $message->consum;
 			$data['serverPush']->resultSuccess = $message->success;
 			$data['serverPush']->resultData = $message->resultData;
-			HashTable::del(HashTableNames::QUEUE_PUSH_BLOCK, $messageId);
 			$server = ServerManage::getServer('MQService');
 			$swooleServer = $server->getSwooleServer();
 			$sendData = $server->getBean(\Imi\Server\DataParser\DataParser::class)->encode($data['serverPush']);

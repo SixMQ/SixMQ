@@ -1,6 +1,7 @@
 <?php
 namespace SixMQ\Util;
 
+use Imi\Pool\PoolManager;
 use SixMQ\Util\GenerateID;
 
 /**
@@ -8,6 +9,16 @@ use SixMQ\Util\GenerateID;
  */
 abstract class RedisKey
 {
+	public static function init()
+	{
+		PoolManager::use('redis', function($resource, $redis) {
+			foreach(QueueCollection::getList() as $queueId)
+			{
+				$redis->del(static::getQueuePopList($queueId));
+			}
+		});
+	}
+
 	/**
 	 * 获取每日消息ID统计
 	 *
@@ -81,4 +92,14 @@ abstract class RedisKey
 		return 'sixmq:message_error_count';
 	}
 
+	/**
+	 * 队列pop阻塞返回队列
+	 *
+	 * @param string $queueId
+	 * @return string
+	 */
+	public static function getQueuePopList($queueId)
+	{
+		return 'sixmq:queue_pop_list:' . $queueId;
+	}
 }

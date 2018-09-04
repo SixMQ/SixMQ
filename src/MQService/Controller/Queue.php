@@ -50,7 +50,7 @@ class Queue extends Base
 	public function pop($data)
 	{
 		$reply = QueueService::pop($data);
-		if(!$this->reply($reply) && $reply->success)
+		if(null !== $reply && !$this->reply($reply) && $reply->success)
 		{
 			// 发送失败，回队列
 			QueueService::rollbackPop($reply->queueId, $reply->messageId);
