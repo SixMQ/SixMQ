@@ -18,14 +18,14 @@ use Imi\Server\Event\Listener\IStartEventListener;
  */
 class OnServerCreate implements IEventListener
 {
-	/**
-	 * 事件处理方法
-	 * @param EventParam $e
-	 * @return void
-	 */
-	public function handle(EventParam $e)
-	{
-		// 队列监控
-		ProcessManager::runWithManager('SixMQQueueMonitor');
-	}
+    /**
+     * 事件处理方法
+     * @param EventParam $e
+     * @return void
+     */
+    public function handle(EventParam $e)
+    {
+        // 队列监控
+        ProcessManager::runWithManager('SixMQQueueMonitor');
+    }
 }
