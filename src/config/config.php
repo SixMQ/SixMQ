@@ -19,10 +19,11 @@ return [
         'port'        =>    8089,
         'configs'    =>    [
             // 开发时可以都设为1
-            'worker_num'        =>    1,
-            'task_worker_num'    =>    1,
-            // 'worker_num'        =>    8, // 设置为CPU的1-4倍最合理
-            // 'task_worker_num'    =>    8, // 根据实际情况设置
+            'worker_num'        => 1,
+            'task_worker_num'   => 1,
+            // 'worker_num'        => 8, // 设置为CPU的1-4倍最合理
+            // 'task_worker_num'   => 8, // 根据实际情况设置
+            'max_coroutine'     => 4096, // 同时可创建协程数量
         ],
     ],
     // 子服务器（端口监听）配置

@@ -40,13 +40,28 @@ abstract class QueueService
             $message->queueId = $data->queueId;
             $message->retry = $data->retry;
             $message->timeout = $data->timeout;
-            $redis->set($messageIdKey, $message);
-            // 加入消息队列
-            $redis->rpush(RedisKey::getMessageQueue($data->queueId), $messageId);
-            // 加入超时队列
-            if($data->timeout > -1)
+            $message->delay = $data->delay;
+            $isDelay = $data->delay > 0;
+            if($isDelay)
             {
-                $redis->zadd(RedisKey::getQueueExpireSet($data->queueId), microtime(true) + $data->timeout, $messageId);
+                $message->delayRunTime = $message->inTime + $data->delay;
+            }
+            // 消息存储
+            $redis->set($messageIdKey, $message);
+            if($isDelay)
+            {
+                // 加入延迟集合
+                $redis->zadd(RedisKey::getDelaySet(), $message->delayRunTime, $messageId);
+            }
+            else
+            {
+                // 加入消息队列
+                $redis->rpush(RedisKey::getMessageQueue($data->queueId), $messageId);
+                // 加入超时队列
+                if($data->timeout > -1)
+                {
+                    $redis->zadd(RedisKey::getQueueExpireSet($data->queueId), microtime(true) + $data->timeout, $messageId);
+                }
             }
             // 运行事务
             return $redis->exec();
@@ -68,7 +83,10 @@ abstract class QueueService
             {
                 QueueCollection::append($data->queueId);
             }
-            static::parsePopBlock($data->queueId);
+            if($data->delay <= 0)
+            {
+                static::parsePopBlock($data->queueId);
+            }
         });
         return $return;
     }
@@ -151,7 +169,7 @@ abstract class QueueService
      */
     public static function expireTask($queueId, $messageId)
     {
-        PoolManager::use('redis', function($source, $redis) use($queueId, $messageId){
+        PoolManager::use('redis', function($resource, $redis) use($queueId, $messageId){
             $workingMessageSetKey = RedisKey::getWorkingMessageSet($queueId);
 
             // 消息执行超时
@@ -190,7 +208,7 @@ abstract class QueueService
      */
     public static function rollbackPop($queueId, $messageId)
     {
-        PoolManager::use('redis', function($source, $redis) use($queueId, $messageId){
+        PoolManager::use('redis', function($resource, $redis) use($queueId, $messageId){
             $workingMessageSetKey = RedisKey::getWorkingMessageSet($queueId);
 
             // 移出工作集合
@@ -317,7 +335,7 @@ abstract class QueueService
         {
             $server = ServerManage::getServer('MQService');
         }
-        // 处理push阻塞推送
+        // 处理pop阻塞推送
         go(function() use($queueId, $server){
             RequestContext::create();
             RequestContext::set('server', $server);
@@ -335,7 +353,7 @@ abstract class QueueService
      */
     public static function expireMessage($queueId, $messageId)
     {
-        PoolManager::use('redis', function($source, $redis) use($queueId, $messageId){
+        PoolManager::use('redis', function($resource, $redis) use($queueId, $messageId){
             // 移出队列
             $redis->lrem(RedisKey::getMessageQueue($queueId), $messageId, 1);
 
@@ -355,5 +373,35 @@ abstract class QueueService
         });
         // 处理push阻塞推送
         static::parsePushBlock($messageId);
+    }
+
+    /**
+     * 延迟消息进队列
+     *
+     * @param string $messageId
+     * @return void
+     */
+    public static function delayToQueue($messageId)
+    {
+        PoolManager::use('redis', function($resource, $redis) use($messageId){
+            // 获取消息
+            $message = static::getMessage($messageId);
+
+            // 移出延时队列
+            $redis->zrem(RedisKey::getDelaySet(), $messageId);
+
+            // 加入消息队列
+            $redis->rpush(RedisKey::getMessageQueue($message->queueId), $messageId);
+
+            // 加入超时队列
+            if($message->timeout > -1)
+            {
+                $redis->zadd(RedisKey::getQueueExpireSet($message->queueId), microtime(true) + $message->timeout, $messageId);
+            }
+
+            go(function() use($message){
+                static::parsePopBlock($message->queueId);
+            });
+        });
     }
 }

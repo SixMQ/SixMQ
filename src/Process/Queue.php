@@ -17,20 +17,50 @@ class Queue extends BaseProcess
     public function run(\Swoole\Process $process)
     {
         echo 'Process [SixMQQueueMonitor] start', PHP_EOL;
-        go(function(){
+        // 消息超时
+        $this->goTask(function(){
+            foreach(QueueCollection::getList() as $queueId)
+            {
+                $this->checkMessageExpire($queueId);
+            }
+        });
+        // 任务超时
+        $this->goTask(function(){
+            foreach(QueueCollection::getList() as $queueId)
+            {
+                $this->checkTaskExpire($queueId);
+            }
+        });
+        // 消息延迟
+        $this->goTask(function(){
+            $this->parseDelayMessage();
+        });
+    }
+
+    /**
+     * 启动一个协程执行任务
+     *
+     * @param callable $callable
+     * @param int $minTimespan
+     * @return void
+     */
+    private function goTask($callable, $minTimespan = 1)
+    {
+        go(function() use($callable, $minTimespan){
             while(true)
             {
                 $beginTime = microtime(true);
-                foreach(QueueCollection::getList() as $queueId)
-                {
-                    $this->checkMessageExpire($queueId);
-                    $this->checkTaskExpire($queueId);
-                }
+                
+                $callable();
 
                 $subTime = microtime(true) - $beginTime;
-                if($subTime < 1)
+                if($subTime < $minTimespan)
                 {
-                    Coroutine::sleep(1 - $subTime);
+                    Coroutine::sleep($minTimespan - $subTime);
+                }
+                else
+                {
+                    Coroutine::sleep(0.001);
                 }
             }
         });
@@ -44,13 +74,17 @@ class Queue extends BaseProcess
      */
     private function checkMessageExpire($queueId)
     {
-        PoolManager::use('redis', function($source, $redis) use($queueId){
+        PoolManager::use('redis', function($resource, $redis) use($queueId){
             $expireMessageSetKey = RedisKey::getQueueExpireSet($queueId);
-            $list = $redis->zrevrangebyscore($expireMessageSetKey, microtime(true), 0, []);
-            foreach($list as $messageId)
-            {
-                QueueService::expireMessage($queueId, $messageId);
-            }
+            do{
+                $list = $redis->zrevrangebyscore($expireMessageSetKey, microtime(true), 0, [
+                    'limit'     =>  [0, 1000],
+                ]);
+                foreach($list as $messageId)
+                {
+                    QueueService::expireMessage($queueId, $messageId);
+                }
+            }while([] !== $list);
         });
     }
 
@@ -62,13 +96,38 @@ class Queue extends BaseProcess
      */
     private function checkTaskExpire($queueId)
     {
-        PoolManager::use('redis', function($source, $redis) use($queueId){
+        PoolManager::use('redis', function($resource, $redis) use($queueId){
             $workingMessageSetKey = RedisKey::getWorkingMessageSet($queueId);
-            $list = $redis->zrevrangebyscore($workingMessageSetKey, microtime(true), 0, []);
-            foreach($list as $messageId)
-            {
-                QueueService::expireTask($queueId, $messageId);
-            }
+            do{
+                $list = $redis->zrevrangebyscore($workingMessageSetKey, microtime(true), 0, [
+                    'limit'     =>  [0, 1000],
+                ]);
+                foreach($list as $messageId)
+                {
+                    QueueService::expireTask($queueId, $messageId);
+                }
+            }while([] !== $list);
+        });
+    }
+
+    /**
+     * 消息延迟处理
+     *
+     * @return void
+     */
+    private function parseDelayMessage()
+    {
+        PoolManager::use('redis', function($resource, $redis){
+            $key = RedisKey::getDelaySet();
+            do{
+                $list = $redis->zrevrangebyscore($key, microtime(true), 0, [
+                    'limit'     =>  [0, 1000],
+                ]);
+                foreach($list as $messageId)
+                {
+                    QueueService::delayToQueue($messageId);
+                }
+            }while([] !== $list);
         });
     }
 }

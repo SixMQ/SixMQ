@@ -102,4 +102,14 @@ abstract class RedisKey
     {
         return 'sixmq:queue_pop_list:' . $queueId;
     }
+
+    /**
+     * 延迟集合
+     *
+     * @return string
+     */
+    public static function getDelaySet()
+    {
+        return 'sixmq:delay_set';
+    }
 }
