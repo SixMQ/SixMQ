@@ -72,7 +72,7 @@ class Queue extends Base
     }
 
     /**
-     * 消息处理完成
+     * 获取消息
      * @TcpAction
      * @TcpRoute({"action"="queue.getMessage"})
      *
@@ -90,5 +90,19 @@ class Queue extends Base
             $reply->message = $message;
         }
         $this->reply($reply);
-    }
+	}
+	
+    /**
+     * 将消息移出队列
+     * @TcpAction
+     * @TcpRoute({"action"="queue.remove"})
+     *
+     * @param \SixMQ\Struct\Queue\Client\Remove $data
+     * @return void
+     */
+	public function remove($data)
+	{
+		$reply = QueueService::remove($data->messageId);
+		$this->reply($reply);
+	}
 }

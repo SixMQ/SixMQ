@@ -260,10 +260,27 @@ abstract class QueueService
     }
 
     /**
+     * 将消息移出队列
+     *
+     * @param string $messageId
+     * @return \SixMQ\Struct\Queue\Server\Reply
+     */
+    public static function remove($messageId)
+    {
+        $message = static::getMessage($messageId);
+        $result = PoolManager::use('redis', function($resource, $redis) use($messageId, $message){
+            // 移出队列
+            return $redis->lrem(RedisKey::getMessageQueue($message->queueId), $message->messageId, 1);
+        });
+        $return = new Reply(!!$result);
+        return $return;
+    }
+
+    /**
      * 处理push阻塞推送
      *
      * @param string $messageId
-     * @return void
+     * @return \SixMQ\Struct\Queue\Message
      */
     private static function parsePushBlock($messageId)
     {
