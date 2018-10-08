@@ -1,13 +1,16 @@
 <?php
 namespace SixMQ\Process;
 
-use Imi\Process\BaseProcess;
-use Imi\Process\Annotation\Process;
-use Imi\Pool\PoolManager;
-use SixMQ\Util\RedisKey;
-use SixMQ\Util\QueueCollection;
-use SixMQ\Service\QueueService;
 use Swoole\Coroutine;
+use SixMQ\Util\RedisKey;
+use Imi\Pool\PoolManager;
+use Imi\Process\BaseProcess;
+use SixMQ\Service\QueueService;
+use SixMQ\Util\QueueCollection;
+use Imi\Process\Annotation\Process;
+use SixMQ\Util\MessageGroupCollection;
+use SixMQ\Struct\Queue\GroupMessageStatus;
+use SixMQ\Util\MessageWorkingSet;
 
 /**
  * @Process(name="SixMQQueueMonitor", unique=true)
@@ -34,6 +37,10 @@ class Queue extends BaseProcess
         // 消息延迟
         $this->goTask(function(){
             $this->parseDelayMessage();
+        });
+        // 消息延迟
+        $this->goTask(function(){
+            $this->parseMessageGroup();
         });
     }
 
@@ -128,6 +135,64 @@ class Queue extends BaseProcess
                     QueueService::delayToQueue($messageId);
                 }
             }while([] !== $list);
+        });
+    }
+
+    /**
+     * 处理消息分组
+     *
+     * @return void
+     */
+    private function parseMessageGroup()
+    {
+        MessageGroupCollection::eachGroups(function($redis, $queueId, $groupId, $workingMessageId, &$break){
+            if('' !== $workingMessageId)
+            {
+                return;
+            }
+            $hasMessage = false;
+            MessageGroupCollection::eachGroupMessages($queueId, $groupId, GroupMessageStatus::FREE, function($redis, $messageId, &$break) use($queueId, $groupId, &$hasMessage){
+                $hasMessage = true;
+                $message = QueueService::getMessage($messageId);
+                $isDelay = $message->delay > 0;
+                $canNotifyPop = false;
+                MessageGroupCollection::setMessageStatus($queueId, $groupId, $message->messageId, GroupMessageStatus::WORKING);
+                MessageGroupCollection::setWorkingGroupMessage($message->queueId, $message->groupId, $message->messageId);
+                if($isDelay)
+                {
+                    $message->delayRunTime = $message->inTime + $message->delay;
+                    // 消息存储
+                    $messageIdKey = RedisKey::getMessageId($messageId);
+                    $redis->set($messageIdKey, $message);
+                    // 加入延迟集合
+                    $redis->zadd(RedisKey::getDelaySet(), $message->delayRunTime, $messageId);
+                }
+                else
+                {
+                    $canNotifyPop = true;
+                    // 加入消息队列
+                    $redis->rpush(RedisKey::getMessageQueue($queueId), $messageId);
+                    // 加入超时队列
+                    if($message->timeout > -1)
+                    {
+                        $redis->zadd(RedisKey::getQueueExpireSet($queueId), microtime(true) + $message->timeout, $messageId);
+                    }
+                }
+                if($hasMessage)
+                {
+                    go(function() use($message, $canNotifyPop){
+                        if($canNotifyPop)
+                        {
+                            QueueService::parsePopBlock($message->queueId);
+                        }
+                    });
+                }
+                $break = true;
+            });
+            if(!$hasMessage)
+            {
+                MessageGroupCollection::removeWorkingGroup($queueId, $groupId);
+            }
         });
     }
 }

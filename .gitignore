@@ -3,3 +3,4 @@
 /vendor/**/.git
 /vendor
 *.pid
+/bin/SixMQ.app.init

@@ -17,6 +17,9 @@ use SixMQ\Util\QueuePopBlockParser;
 use SixMQ\Struct\Queue\Server\Reply;
 use SixMQ\Util\QueuePushBlockParser;
 use Imi\Util\CoroutineChannelManager;
+use SixMQ\Util\MessageGroupCollection;
+use SixMQ\Struct\Queue\GroupMessageStatus;
+use SixMQ\Util\MessageWorkingSet;
 
 abstract class QueueService
 {
@@ -29,7 +32,9 @@ abstract class QueueService
     public static function push($data)
     {
         $messageId = null;
-        $result = PoolManager::use('redis', function($resource, $redis) use($data, &$messageId){
+        $canNotifyPop = null;
+        $result = PoolManager::use('redis', function($resource, $redis) use($data, &$messageId, &$canNotifyPop){
+            $canNotifyPop = false;
             // 生成消息ID
             $messageId = GenerateID::get();
             $messageIdKey = RedisKey::getMessageId($messageId);
@@ -41,6 +46,7 @@ abstract class QueueService
             $message->retry = $data->retry;
             $message->timeout = $data->timeout;
             $message->delay = $data->delay;
+            $message->groupId = $data->groupId;
             $isDelay = $data->delay > 0;
             if($isDelay)
             {
@@ -48,13 +54,20 @@ abstract class QueueService
             }
             // 消息存储
             $redis->set($messageIdKey, $message);
-            if($isDelay)
+            if(null !== $message->groupId)
+            {
+                // 有分组，加入分组集合
+                MessageGroupCollection::setMessageStatus($data->queueId, $data->groupId, $messageId, GroupMessageStatus::FREE);
+                MessageGroupCollection::addWorkingGroup($data->queueId, $data->groupId);
+            }
+            else if($isDelay)
             {
                 // 加入延迟集合
                 $redis->zadd(RedisKey::getDelaySet(), $message->delayRunTime, $messageId);
             }
             else
             {
+                $canNotifyPop = true;
                 // 加入消息队列
                 $redis->rpush(RedisKey::getMessageQueue($data->queueId), $messageId);
                 // 加入超时队列
@@ -77,13 +90,13 @@ abstract class QueueService
             QueuePushBlockParser::add($fd, $data, $return);
             $return = null;
         }
-        go(function() use($success, $data){
+        go(function() use($success, $data, $canNotifyPop){
             // 队列记录
             if($success && !QueueCollection::has($data->queueId))
             {
                 QueueCollection::append($data->queueId);
             }
-            if($data->delay <= 0)
+            if($canNotifyPop)
             {
                 static::parsePopBlock($data->queueId);
             }
@@ -147,7 +160,7 @@ abstract class QueueService
             // 消息处理最大超时时间
             $expireTime = microtime(true) + $data->maxExpire;
             // 加入工作集合
-            $redis->zadd(RedisKey::getWorkingMessageSet($data->queueId), $expireTime, $messageId);
+            MessageWorkingSet::add($data->queueId, $messageId, $expireTime);
             return true;
         };
         if(null === $redis)
@@ -170,13 +183,11 @@ abstract class QueueService
     public static function expireTask($queueId, $messageId)
     {
         PoolManager::use('redis', function($resource, $redis) use($queueId, $messageId){
-            $workingMessageSetKey = RedisKey::getWorkingMessageSet($queueId);
-
             // 消息执行超时
             $message = $redis->get(RedisKey::getMessageId($messageId));
 
             // 移出工作集合
-            $redis->zrem($workingMessageSetKey, $messageId);
+            MessageWorkingSet::remove($queueId, $messageId);
 
             $message->success = false;
             $message->resultData = 'task timeout';
@@ -194,6 +205,11 @@ abstract class QueueService
                     static::parsePopBlock($queueId);
                 });
             }
+            else if(null === $message->groupId)
+            {
+                MessageGroupCollection::setMessageStatus($message->queueId, $message->groupId, $message->messageId, GroupMessageStatus::COMPLETE);
+                MessageGroupCollection::setWorkingGroupMessage($message->queueId, $message->groupId, '');
+            }
         });
         // 处理push阻塞推送
         static::parsePushBlock($messageId);
@@ -209,10 +225,8 @@ abstract class QueueService
     public static function rollbackPop($queueId, $messageId)
     {
         PoolManager::use('redis', function($resource, $redis) use($queueId, $messageId){
-            $workingMessageSetKey = RedisKey::getWorkingMessageSet($queueId);
-
             // 移出工作集合
-            $redis->zrem($workingMessageSetKey, $messageId);
+            MessageWorkingSet::remove($queueId, $messageId);
 
             // 加入队列
             $redis->lpush(RedisKey::getMessageQueue($queueId), $messageId);
@@ -242,7 +256,7 @@ abstract class QueueService
             $redis->multi();
 
             // 移出集合队列
-            $redis->zrem(RedisKey::getWorkingMessageSet($data->queueId), $data->messageId);
+            MessageWorkingSet::remove($data->queueId, $data->messageId);
 
             // 移除队列（先触发了失败重新入队，尝试出列）
             $redis->lrem(RedisKey::getMessageQueue($data->queueId), $data->messageId, 1);
@@ -253,6 +267,13 @@ abstract class QueueService
 
             // 设置消息数据
             $redis->set(RedisKey::getMessageId($data->messageId), $message);
+
+            if(null !== $message->groupId)
+            {
+                // 分组正在执行的任务置空
+                MessageGroupCollection::setMessageStatus($message->queueId, $message->groupId, $message->messageId, GroupMessageStatus::COMPLETE);
+                MessageGroupCollection::setWorkingGroupMessage($message->queueId, $message->groupId, '');
+            }
 
             // 运行事务
             return $redis->exec();
@@ -325,7 +346,7 @@ abstract class QueueService
      * @param string $queueId
      * @return void
      */
-    private static function parsePopBlock($queueId)
+    public static function parsePopBlock($queueId)
     {
         if(RequestContext::exsits())
         {

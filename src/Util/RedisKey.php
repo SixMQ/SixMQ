@@ -112,4 +112,25 @@ abstract class RedisKey
     {
         return 'sixmq:delay_set';
     }
+
+    /**
+     * 获取消息分组列表
+     *
+     * @return string
+     */
+    public static function getMessageGroupList($queueId, $groupId)
+    {
+        return 'sixmq:message_group:' . $queueId . ':' . $groupId;
+    }
+
+    /**
+     * 获取工作中的消息组
+     *
+     * @return string
+     */
+    public static function getWorkingMessageGroupsSet()
+    {
+        return 'sixmq:working_message_groups';
+    }
+
 }
