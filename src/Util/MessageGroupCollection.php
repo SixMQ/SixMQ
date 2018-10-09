@@ -103,6 +103,21 @@ abstract class MessageGroupCollection
     }
 
     /**
+     * 获取分组中正在工作的消息ID
+     *
+     * @param string $queueId
+     * @param string $groupId
+     * @return boolean
+     */
+    public static function getWorkingMessage($queueId, $groupId)
+    {
+        return PoolManager::use('redis', function($resource, $redis) use($queueId, $groupId) {
+            $key = RedisKey::getWorkingMessageGroupsSet();
+            return $redis->hGet($key, $queueId . ':' . $groupId);
+        });
+    }
+
+    /**
      * 添加组进入工作组
      *
      * @param string $queueId

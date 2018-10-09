@@ -314,7 +314,10 @@ abstract class QueueService
                 if(null !== $message->groupId)
                 {
                     MessageGroupCollection::setMessageStatus($message->queueId, $message->groupId, $message->messageId, GroupMessageStatus::CANCEL);
-                    MessageGroupCollection::setWorkingGroupMessage($message->queueId, $message->groupId, '');
+                    if($message->messageId === MessageGroupCollection::getWorkingMessage($message->queueId, $message->groupId))
+                    {
+                        MessageGroupCollection::setWorkingGroupMessage($message->queueId, $message->groupId, '');
+                    }
                 }
                 // 移出延时队列
                 if($message->delay > 0)
