@@ -307,10 +307,29 @@ abstract class QueueService
     public static function remove($messageId)
     {
         $message = static::getMessage($messageId);
-        $result = PoolManager::use('redis', function($resource, $redis) use($messageId, $message){
-            // 移出队列
-            return $redis->lrem(RedisKey::getMessageQueue($message->queueId), $message->messageId, 1);
-        });
+        if($message)
+        {
+            $result = PoolManager::use('redis', function($resource, $redis) use($messageId, $message){
+                // 移出分组
+                if(null !== $message->groupId)
+                {
+                    MessageGroupCollection::setMessageStatus($message->queueId, $message->groupId, $message->messageId, GroupMessageStatus::CANCEL);
+                    MessageGroupCollection::setWorkingGroupMessage($message->queueId, $message->groupId, '');
+                }
+                // 移出延时队列
+                if($message->delay > 0)
+                {
+                    $redis->zrem(RedisKey::getDelaySet(), $message->messageId);
+                }
+                // 移出队列
+                $redis->lrem(RedisKey::getMessageQueue($message->queueId), $message->messageId, 1);
+                return true;
+            });
+        }
+        else
+        {
+            $result = false;
+        }
         $return = new Reply(!!$result);
         return $return;
     }
