@@ -205,7 +205,7 @@ abstract class QueueService
                     static::parsePopBlock($queueId);
                 });
             }
-            else if(null === $message->groupId)
+            else if(null !== $message->groupId)
             {
                 MessageGroupCollection::setMessageStatus($message->queueId, $message->groupId, $message->messageId, GroupMessageStatus::COMPLETE);
                 MessageGroupCollection::setWorkingGroupMessage($message->queueId, $message->groupId, '');
