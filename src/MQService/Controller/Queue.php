@@ -7,7 +7,7 @@ use Imi\Pool\PoolManager;
 use SixMQ\Util\GenerateID;
 use SixMQ\Service\QueueService;
 use SixMQ\Struct\Queue\Message;
-use SixMQ\Util\QueueCollection;
+use SixMQ\Logic\QueueLogic;
 use SixMQ\Struct\BaseServerStruct;
 use SixMQ\Struct\Queue\Server\Pop;
 use SixMQ\Struct\Queue\Server\Reply;

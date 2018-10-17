@@ -6,11 +6,14 @@ use SixMQ\Util\RedisKey;
 use Imi\Pool\PoolManager;
 use Imi\Process\BaseProcess;
 use SixMQ\Service\QueueService;
-use SixMQ\Util\QueueCollection;
+use SixMQ\Logic\QueueLogic;
 use Imi\Process\Annotation\Process;
-use SixMQ\Util\MessageGroupCollection;
+use SixMQ\Logic\MessageGroupLogic;
 use SixMQ\Struct\Queue\GroupMessageStatus;
-use SixMQ\Util\MessageWorkingSet;
+use SixMQ\Logic\MessageWorkingLogic;
+use SixMQ\Logic\DelayLogic;
+use SixMQ\Logic\TimeoutLogic;
+use SixMQ\Logic\MessageLogic;
 
 /**
  * @Process(name="SixMQQueueMonitor", unique=true)
@@ -22,14 +25,14 @@ class Queue extends BaseProcess
         echo 'Process [SixMQQueueMonitor] start', PHP_EOL;
         // 消息超时
         $this->goTask(function(){
-            foreach(QueueCollection::getList() as $queueId)
+            foreach(QueueLogic::getList() as $queueId)
             {
                 $this->checkMessageExpire($queueId);
             }
         });
         // 任务超时
         $this->goTask(function(){
-            foreach(QueueCollection::getList() as $queueId)
+            foreach(QueueLogic::getList() as $queueId)
             {
                 $this->checkTaskExpire($queueId);
             }
@@ -81,18 +84,13 @@ class Queue extends BaseProcess
      */
     private function checkMessageExpire($queueId)
     {
-        PoolManager::use('redis', function($resource, $redis) use($queueId){
-            $expireMessageSetKey = RedisKey::getQueueExpireSet($queueId);
-            do{
-                $list = $redis->zrevrangebyscore($expireMessageSetKey, microtime(true), 0, [
-                    'limit'     =>  [0, 1000],
-                ]);
-                foreach($list as $messageId)
-                {
-                    QueueService::expireMessage($queueId, $messageId);
-                }
-            }while([] !== $list);
-        });
+        do{
+            $list = TimeoutLogic::getList($queueId, microtime(true), 0, 1000);
+            foreach($list as $messageId)
+            {
+                QueueService::expireMessage($queueId, $messageId);
+            }
+        }while([] !== $list);
     }
 
     /**
@@ -103,18 +101,13 @@ class Queue extends BaseProcess
      */
     private function checkTaskExpire($queueId)
     {
-        PoolManager::use('redis', function($resource, $redis) use($queueId){
-            $workingMessageSetKey = RedisKey::getWorkingMessageSet($queueId);
-            do{
-                $list = $redis->zrevrangebyscore($workingMessageSetKey, microtime(true), 0, [
-                    'limit'     =>  [0, 1000],
-                ]);
-                foreach($list as $messageId)
-                {
-                    QueueService::expireTask($queueId, $messageId);
-                }
-            }while([] !== $list);
-        });
+        do{
+            $list = MessageWorkingLogic::getList($queueId, microtime(true), 0, 1000);
+            foreach($list as $messageId)
+            {
+                QueueService::expireTask($queueId, $messageId);
+            }
+        }while([] !== $list);
     }
 
     /**
@@ -124,18 +117,13 @@ class Queue extends BaseProcess
      */
     private function parseDelayMessage()
     {
-        PoolManager::use('redis', function($resource, $redis){
-            $key = RedisKey::getDelaySet();
-            do{
-                $list = $redis->zrevrangebyscore($key, microtime(true), 0, [
-                    'limit'     =>  [0, 1000],
-                ]);
-                foreach($list as $messageId)
-                {
-                    QueueService::delayToQueue($messageId);
-                }
-            }while([] !== $list);
-        });
+        do{
+            $list = DelayLogic::getList(microtime(true), 0, 1000);
+            foreach($list as $messageId)
+            {
+                QueueService::delayToQueue($messageId);
+            }
+        }while([] !== $list);
     }
 
     /**
@@ -145,37 +133,36 @@ class Queue extends BaseProcess
      */
     private function parseMessageGroup()
     {
-        MessageGroupCollection::eachGroups(function($redis, $queueId, $groupId, $workingMessageId, &$break){
+        MessageGroupLogic::eachGroups(function($redis, $queueId, $groupId, $workingMessageId, &$break){
             if('' !== $workingMessageId)
             {
                 return;
             }
             $hasMessage = false;
-            MessageGroupCollection::eachGroupMessages($queueId, $groupId, GroupMessageStatus::FREE, function($redis, $messageId, &$break) use($queueId, $groupId, &$hasMessage){
+            MessageGroupLogic::eachGroupMessages($queueId, $groupId, GroupMessageStatus::FREE, function($redis, $messageId, &$break) use($queueId, $groupId, &$hasMessage){
                 $hasMessage = true;
                 $message = QueueService::getMessage($messageId);
                 $isDelay = $message->delay > 0;
                 $canNotifyPop = false;
-                MessageGroupCollection::setMessageStatus($queueId, $groupId, $message->messageId, GroupMessageStatus::WORKING);
-                MessageGroupCollection::setWorkingGroupMessage($message->queueId, $message->groupId, $message->messageId);
+                MessageGroupLogic::setMessageStatus($queueId, $groupId, $message->messageId, GroupMessageStatus::WORKING);
+                MessageGroupLogic::setWorkingGroupMessage($message->queueId, $message->groupId, $message->messageId);
                 if($isDelay)
                 {
                     $message->delayRunTime = $message->inTime + $message->delay;
                     // 消息存储
-                    $messageIdKey = RedisKey::getMessageId($messageId);
-                    $redis->set($messageIdKey, $message);
+                    MessageLogic::set($messageId, $message);
                     // 加入延迟集合
-                    $redis->zadd(RedisKey::getDelaySet(), $message->delayRunTime, $messageId);
+                    DelayLogic::add($messageId, $message->delayRunTime);
                 }
                 else
                 {
                     $canNotifyPop = true;
                     // 加入消息队列
-                    $redis->rpush(RedisKey::getMessageQueue($queueId), $messageId);
+                    QueueLogic::rpush($queueId, $messageId);
                     // 加入超时队列
                     if($message->timeout > -1)
                     {
-                        $redis->zadd(RedisKey::getQueueExpireSet($queueId), microtime(true) + $message->timeout, $messageId);
+                        TimeoutLogic::push($queueId, $messageId, microtime(true) + $message->timeout);
                     }
                 }
                 if($hasMessage)
@@ -191,7 +178,7 @@ class Queue extends BaseProcess
             });
             if(!$hasMessage)
             {
-                MessageGroupCollection::removeWorkingGroup($queueId, $groupId);
+                MessageGroupLogic::removeWorkingGroup($queueId, $groupId);
             }
         });
     }

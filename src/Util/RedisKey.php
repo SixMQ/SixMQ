@@ -3,6 +3,7 @@ namespace SixMQ\Util;
 
 use Imi\Pool\PoolManager;
 use SixMQ\Util\GenerateID;
+use SixMQ\Logic\QueueLogic;
 
 /**
  * Redis 存储键获取
@@ -12,7 +13,7 @@ abstract class RedisKey
     public static function init()
     {
         PoolManager::use('redis', function($resource, $redis) {
-            foreach(QueueCollection::getList() as $queueId)
+            foreach(QueueLogic::getList() as $queueId)
             {
                 $redis->del(static::getQueuePopList($queueId));
             }

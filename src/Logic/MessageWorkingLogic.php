@@ -1,10 +1,10 @@
 <?php
-namespace SixMQ\Util;
+namespace SixMQ\Logic;
 
 use SixMQ\Util\RedisKey;
 use Imi\Pool\PoolManager;
 
-abstract class MessageWorkingSet
+abstract class MessageWorkingLogic
 {
     /**
      * 新增工作中的消息
@@ -46,6 +46,24 @@ abstract class MessageWorkingSet
     {
         return PoolManager::use('redis', function($resource, $redis) use($queueId, $messageId) {
             $redis->zRank(RedisKey::getWorkingMessageSet($queueId), $messageId);
+        });
+    }
+
+    /**
+     * 获取队列满足时间条件的消息ID列表
+     *
+     * @param string $queueId
+     * @param integer $time
+     * @param integer $begin
+     * @param integer $limit
+     * @return array
+     */
+    public static function getList($queueId, $time, $begin = 0, $limit = 1000)
+    {
+        return PoolManager::use('redis', function($resource, $redis) use($queueId, $time, $begin, $limit){
+            return $redis->zrevrangebyscore(RedisKey::getWorkingMessageSet($queueId), $time, 0, [
+                'limit'     =>  [$begin, $limit],
+            ]);
         });
     }
 }

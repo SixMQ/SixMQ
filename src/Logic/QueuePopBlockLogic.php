@@ -5,9 +5,10 @@ use Imi\ServerManage;
 use Imi\Pool\PoolManager;
 use SixMQ\Util\HashTableNames;
 use SixMQ\Service\QueueService;
+use SixMQ\Util\RedisKey;
 
 
-abstract class QueuePopBlockParser
+abstract class QueuePopBlockLogic
 {
     /**
      * 增加监听

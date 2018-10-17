@@ -1,14 +1,17 @@
 <?php
-namespace SixMQ\Util;
+namespace SixMQ\Logic;
 
+use SixMQ\Util\RedisKey;
 use Imi\Pool\PoolManager;
 use SixMQ\Struct\Queue\GroupMessageStatus;
 
-
-abstract class MessageGroupCollection
+/**
+ * 消息分组集合
+ */
+abstract class MessageGroupLogic
 {
     /**
-     * 枚举所有工作中的消息分组的ID
+     * 遍历所有工作中的消息分组的ID
      * 
      * @param callable $callable
      *
@@ -40,7 +43,7 @@ abstract class MessageGroupCollection
     }
 
     /**
-     * 枚举组中消息
+     * 遍历组中消息
      *
      * @param string $queueId
      * @param string $groupId
