@@ -88,17 +88,15 @@ abstract class QueueService
             QueuePushBlockLogic::add($fd, $data, $return);
             $return = null;
         }
-        go(function() use($success, $data, $canNotifyPop){
-            // 队列记录
-            if($success && !QueueLogic::has($data->queueId))
-            {
-                QueueLogic::append($data->queueId);
-            }
-            if($canNotifyPop)
-            {
-                static::parsePopBlock($data->queueId);
-            }
-        });
+        // 队列记录
+        if($success && !QueueLogic::has($data->queueId))
+        {
+            QueueLogic::append($data->queueId);
+        }
+        if($canNotifyPop)
+        {
+            static::parsePopBlock($data->queueId);
+        }
         return $return;
     }
 
@@ -198,9 +196,7 @@ abstract class QueueService
             // 加入队列
             QueueLogic::rpush($queueId, $messageId);
             $message->inTime = microtime(true);
-            go(function() use($queueId){
-                static::parsePopBlock($queueId);
-            });
+            static::parsePopBlock($queueId);
         }
         else if(null !== $message->groupId)
         {
@@ -225,9 +221,7 @@ abstract class QueueService
 
         // 加入队列
         QueueLogic::lpush($queueId, $messageId);
-        go(function() use($queueId){
-            static::parsePopBlock($queueId);
-        });
+        static::parsePopBlock($queueId);
     }
 
     /**
@@ -331,18 +325,10 @@ abstract class QueueService
      */
     private static function parsePushBlock($messageId)
     {
-        if(RequestContext::exsits())
-        {
-            $server = RequestContext::get('server');
-        }
-        else
-        {
-            $server = ServerManage::getServer('MQService');
-        }
         // 处理push阻塞推送
-        go(function() use($messageId, $server){
+        go(function() use($messageId){
             RequestContext::create();
-            RequestContext::set('server', $server);
+            RequestContext::set('server', ServerManage::getServer('MQService'));
             QueuePushBlockLogic::complete($messageId);
             RequestContext::destroy();
         });
@@ -356,18 +342,10 @@ abstract class QueueService
      */
     public static function parsePopBlock($queueId)
     {
-        if(RequestContext::exsits())
-        {
-            $server = RequestContext::get('server');
-        }
-        else
-        {
-            $server = ServerManage::getServer('MQService');
-        }
         // 处理pop阻塞推送
-        go(function() use($queueId, $server){
+        go(function() use($queueId){
             RequestContext::create();
-            RequestContext::set('server', $server);
+            RequestContext::set('server', ServerManage::getServer('MQService'));
             QueuePopBlockLogic::complete($queueId);
             RequestContext::destroy();
         });
@@ -423,8 +401,6 @@ abstract class QueueService
             TimeoutLogic::push($message->queueId, $messageId, microtime(true) + $message->timeout);
         }
 
-        go(function() use($message){
-            static::parsePopBlock($message->queueId);
-        });
+        static::parsePopBlock($message->queueId);
     }
 }

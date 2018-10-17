@@ -167,12 +167,10 @@ class Queue extends BaseProcess
                 }
                 if($hasMessage)
                 {
-                    go(function() use($message, $canNotifyPop){
-                        if($canNotifyPop)
-                        {
-                            QueueService::parsePopBlock($message->queueId);
-                        }
-                    });
+                    if($canNotifyPop)
+                    {
+                        QueueService::parsePopBlock($message->queueId);
+                    }
                 }
                 $break = true;
             });
