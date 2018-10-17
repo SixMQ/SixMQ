@@ -32,8 +32,8 @@ abstract class MessageLogic
      */
     public static function get($messageId): Message
     {
-        return PoolManager::use('redis', function($resource, $redis) use($messageId, $message){
-            return $redis->get(RedisKey::getMessageId($messageId), $message);
+        return PoolManager::use('redis', function($resource, $redis) use($messageId){
+            return $redis->get(RedisKey::getMessageId($messageId));
         });
     }
 }

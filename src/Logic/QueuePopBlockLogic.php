@@ -1,5 +1,5 @@
 <?php
-namespace SixMQ\Util;
+namespace SixMQ\Logic;
 
 use Imi\ServerManage;
 use Imi\Pool\PoolManager;

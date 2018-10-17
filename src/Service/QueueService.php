@@ -190,7 +190,7 @@ abstract class QueueService
         $message->resultData = 'task timeout';
         $message->consum = false;
         // 设置消息数据
-        $message = MessageLogic::set($messageId, $message);
+        MessageLogic::set($messageId, $message);
 
         // 失败重试次数限制
         if(QueueError::inc($messageId) < $message->retry)

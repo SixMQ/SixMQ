@@ -1,11 +1,12 @@
 <?php
-namespace SixMQ\Util;
+namespace SixMQ\Logic;
 
 use Imi\ServerManage;
-use SixMQ\Util\HashTableNames;
-use SixMQ\Service\QueueService;
 use SixMQ\Util\RedisKey;
 use Imi\Pool\PoolManager;
+use SixMQ\Util\HashTable;
+use SixMQ\Util\HashTableNames;
+use SixMQ\Service\QueueService;
 
 
 abstract class QueuePushBlockLogic

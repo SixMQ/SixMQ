@@ -19,7 +19,7 @@ abstract class DelayLogic
     public static function add($messageId, $delayRunTime)
     {
         return PoolManager::use('redis', function($resource, $redis) use($messageId, $delayRunTime){
-            return $redis->zadd(RedisKey::getDelaySet(), $message->delayRunTime, $messageId);
+            return $redis->zadd(RedisKey::getDelaySet(), $delayRunTime, $messageId);
         });
     }
 
