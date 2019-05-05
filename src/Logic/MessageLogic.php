@@ -4,6 +4,7 @@ namespace SixMQ\Logic;
 use SixMQ\Util\RedisKey;
 use Imi\Pool\PoolManager;
 use SixMQ\Struct\Queue\Message;
+use Imi\Redis\RedisHandler;
 
 /**
  * 消息逻辑
@@ -15,12 +16,13 @@ abstract class MessageLogic
      *
      * @param string $messageId
      * @param Message $message
+     * @param int|null $ttl
      * @return void
      */
-    public static function set($messageId, Message $message)
+    public static function set($messageId, Message $message, $ttl = null)
     {
-        PoolManager::use('redis', function($resource, $redis) use($messageId, $message){
-            $redis->set(RedisKey::getMessageId($messageId), $message);
+        PoolManager::use('redis', function($resource, RedisHandler $redis) use($messageId, $message, $ttl){
+            $redis->set(RedisKey::getMessageId($messageId), $message, $ttl);
         });
     }
 
@@ -36,4 +38,18 @@ abstract class MessageLogic
             return $redis->get(RedisKey::getMessageId($messageId));
         });
     }
+
+    /**
+     * 移除消息
+     *
+     * @param string $messageId
+     * @return void
+     */
+    public static function removeMessage($messageId)
+    {
+        PoolManager::use('redis', function($resource, $redis) use($messageId){
+            return $redis->del(RedisKey::getMessageId($messageId));
+        });
+    }
+
 }

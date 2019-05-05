@@ -247,12 +247,20 @@ abstract class QueueService
         
         QueueLogic::remove($data->queueId, $data->messageId);
 
-        $message->consum = true;
-        $message->success = $data->success;
-        $message->resultData = $data->data;
+        if($data->success && Config::get('@app.common.drop_message_when_complete'))
+        {
+            MessageLogic::removeMessage($message->messageId);
+        }
+        else
+        {
+            $message->consum = true;
+            $message->success = $data->success;
+            $message->resultData = $data->data;
+    
+            // 设置消息数据
+            MessageLogic::set($data->messageId, $message, Config::get('@app.common.message_ttl_when_complete'));
+        }
 
-        // 设置消息数据
-        MessageLogic::set($data->messageId, $message);
 
         if(null !== $message->groupId)
         {
