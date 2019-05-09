@@ -2,10 +2,11 @@
 namespace SixMQ\Logic;
 
 use Imi\ServerManage;
+use SixMQ\Util\RedisKey;
 use Imi\Pool\PoolManager;
+use SixMQ\Util\DataParser;
 use SixMQ\Util\HashTableNames;
 use SixMQ\Service\QueueService;
-use SixMQ\Util\RedisKey;
 
 
 abstract class QueuePopBlockLogic
@@ -62,7 +63,7 @@ abstract class QueuePopBlockLogic
                     break;
                 }
                 $popResult->flag = $popData->flag;
-                $sendData = $server->getBean(\Imi\Server\DataParser\DataParser::class)->encode($popResult);
+                $sendData = DataParser::encode($popResult);
                 if(!$swooleServer->send($data['fd'], $sendData))
                 {
                     QueueService::rollbackPop($queueId, $popResult->messageId);

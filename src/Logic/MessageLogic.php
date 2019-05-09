@@ -30,9 +30,9 @@ abstract class MessageLogic
      * 获取
      *
      * @param string $messageId
-     * @return SixMQ\Struct\Queue\Message
+     * @return \SixMQ\Struct\Queue\Message|null
      */
-    public static function get($messageId): Message
+    public static function get($messageId)
     {
         return PoolManager::use('redis', function($resource, $redis) use($messageId){
             return $redis->get(RedisKey::getMessageId($messageId));

@@ -35,7 +35,6 @@ abstract class QueueService
     public static function push($data)
     {
         $messageId = null;
-        $canNotifyPop = null;
         $canNotifyPop = false;
         // 生成消息ID
         $messageId = GenerateID::get();
@@ -334,11 +333,8 @@ abstract class QueueService
     private static function parsePushBlock($messageId)
     {
         // 处理push阻塞推送
-        go(function() use($messageId){
-            RequestContext::create();
-            RequestContext::set('server', ServerManage::getServer('MQService'));
+        imigo(function() use($messageId){
             QueuePushBlockLogic::complete($messageId);
-            RequestContext::destroy();
         });
     }
 
@@ -351,11 +347,8 @@ abstract class QueueService
     public static function parsePopBlock($queueId)
     {
         // 处理pop阻塞推送
-        go(function() use($queueId){
-            RequestContext::create();
-            RequestContext::set('server', ServerManage::getServer('MQService'));
+        imigo(function() use($queueId){
             QueuePopBlockLogic::complete($queueId);
-            RequestContext::destroy();
         });
     }
 

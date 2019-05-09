@@ -56,7 +56,7 @@ class Queue extends BaseProcess
      */
     private function goTask($callable, $minTimespan = 1)
     {
-        go(function() use($callable, $minTimespan){
+        imigo(function() use($callable, $minTimespan){
             while(true)
             {
                 $beginTime = microtime(true);

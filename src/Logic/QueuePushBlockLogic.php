@@ -5,6 +5,7 @@ use Imi\ServerManage;
 use SixMQ\Util\RedisKey;
 use Imi\Pool\PoolManager;
 use SixMQ\Util\HashTable;
+use SixMQ\Util\DataParser;
 use SixMQ\Util\HashTableNames;
 use SixMQ\Service\QueueService;
 
@@ -48,7 +49,7 @@ abstract class QueuePushBlockLogic
             $data['serverPush']->resultData = $message->resultData;
             $server = ServerManage::getServer('MQService');
             $swooleServer = $server->getSwooleServer();
-            $sendData = $server->getBean(\Imi\Server\DataParser\DataParser::class)->encode($data['serverPush']);
+            $sendData = DataParser::encode($data['serverPush']);
             $swooleServer->send($data['fd'], $sendData);
         }
     }
