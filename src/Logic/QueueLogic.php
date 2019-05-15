@@ -4,6 +4,7 @@ namespace SixMQ\Logic;
 use SixMQ\Util\RedisKey;
 use Imi\Pool\PoolManager;
 use Imi\Redis\RedisHandler;
+use Imi\Util\Pagination;
 
 /**
  * 队列逻辑
@@ -35,6 +36,20 @@ abstract class QueueLogic
     {
         PoolManager::use('redis', function($resource, $redis) use($queueId, $messageId){
             $redis->rpush(RedisKey::getMessageQueue($queueId), $messageId);
+        });
+    }
+
+    /**
+     * 加入消息队列
+     *
+     * @param string $queueId
+     * @param string $messageId
+     * @return void
+     */
+    public static function pushToAll($queueId, $messageId)
+    {
+        PoolManager::use('redis', function($resource, $redis) use($queueId, $messageId){
+            $redis->rpush(RedisKey::getQueueAll($queueId), $messageId);
         });
     }
 
@@ -75,6 +90,7 @@ abstract class QueueLogic
     {
         PoolManager::use('redis', function($resource, $redis) use($queueId, $messageId){
             $redis->lrem(RedisKey::getMessageQueue($queueId), $messageId, 1);
+            $redis->lrem(RedisKey::getQueueAll($queueId), $messageId, 1);
         });
     }
 
@@ -129,4 +145,64 @@ abstract class QueueLogic
         });
     }
 
+    /**
+     * 获取队列历史消息总数
+     *
+     * @param string $queueId
+     * @return int
+     */
+    public static function allCount($queueId)
+    {
+        return (int)PoolManager::use('redis', function($resource, RedisHandler $redis) use($queueId) {
+            return $redis->lLen(RedisKey::getQueueAll($queueId));
+        });
+    }
+
+    /**
+     * 查询消息队列中消息ID列表
+     *
+     * @param string $queueId
+     * @param int $page
+     * @param int $count
+     * @param int $pages
+     * @return string[]
+     */
+    public static function selectMessageIds($queueId, $page, $count, &$pages)
+    {
+        $pagination = new Pagination($page, $count);
+
+        $key = RedisKey::getMessageQueue($queueId);
+        
+        $list = PoolManager::use('redis', function($resource, RedisHandler $redis) use($key, $pagination) {
+            return $redis->lrange($key, $pagination->getLimitOffset(), $pagination->getLimitEndOffset());
+        });;
+
+        $records = QueueLogic::count($queueId);
+        $pages = $pagination->calcPageCount($records);
+        return $list;
+    }
+
+    /**
+     * 查询消息队列中消息ID列表
+     *
+     * @param string $queueId
+     * @param int $page
+     * @param int $count
+     * @param int $pages
+     * @return string[]
+     */
+    public static function selectAllMessageIds($queueId, $page, $count, &$pages)
+    {
+        $pagination = new Pagination($page, $count);
+
+        $key = RedisKey::getQueueAll($queueId);
+        
+        $list = PoolManager::use('redis', function($resource, RedisHandler $redis) use($key, $pagination) {
+            return $redis->lrange($key, $pagination->getLimitOffset(), $pagination->getLimitEndOffset());
+        });;
+
+        $records = QueueLogic::allCount($queueId);
+        $pages = $pagination->calcPageCount($records);
+        return $list;
+    }
 }

@@ -1,6 +1,7 @@
 <?php
 namespace SixMQ\Logic;
 
+use Imi\Util\Pagination;
 use SixMQ\Util\RedisKey;
 use Imi\Pool\PoolManager;
 use Imi\Redis\RedisHandler;
@@ -81,4 +82,27 @@ abstract class MessageWorkingLogic
         });
     }
 
+    /**
+     * 查询消息队列中消息ID列表
+     *
+     * @param string $queueId
+     * @param int $page
+     * @param int $count
+     * @param int $pages
+     * @return string[]
+     */
+    public static function selectMessageIds($queueId, $page, $count, &$pages)
+    {
+        $pagination = new Pagination($page, $count);
+
+        $key = RedisKey::getWorkingMessageSet($queueId);
+        
+        $list = PoolManager::use('redis', function($resource, RedisHandler $redis) use($key, $pagination) {
+            return $redis->zrange($key, $pagination->getLimitOffset(), $pagination->getLimitEndOffset());
+        });
+
+        $records = static::count($queueId);
+        $pages = $pagination->calcPageCount($records);
+        return $list;
+    }
 }

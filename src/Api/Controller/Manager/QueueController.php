@@ -1,19 +1,27 @@
 <?php
 namespace SixMQ\Api\Controller\Manager;
 
+use SixMQ\Logic\QueueLogic;
+use Imi\Aop\Annotation\Inject;
 use Imi\Controller\HttpController;
+use SixMQ\Logic\MessageCountLogic;
+use SixMQ\Logic\MessageWorkingLogic;
 use Imi\Server\Route\Annotation\Route;
 use Imi\Server\Route\Annotation\Action;
 use Imi\Server\Route\Annotation\Controller;
-use SixMQ\Logic\QueueLogic;
-use SixMQ\Logic\MessageCountLogic;
-use SixMQ\Logic\MessageWorkingLogic;
 
 /**
  * @Controller("/queue/")
  */
 class QueueController extends HttpController
 {
+    /**
+     * @Inject("ApiQueueService")
+     *
+     * @var \SixMQ\Api\Service\ApiQueueService
+     */
+    protected $apiQueueService;
+
     /**
      * 队列列表
      * 
@@ -27,21 +35,25 @@ class QueueController extends HttpController
         $list = [];
         foreach($queueList as $queueId)
         {
-            $list = [
-                'name'          =>  $queueId,
-                // 消息总数
-                'messageCount'  =>  MessageCountLogic::getQueueMessageCount($queueId),
-                // 正在工作数量
-                'workingCount'  =>  MessageWorkingLogic::count($queueId),
-                // 等待处理数量
-                'waitingCount'  =>  QueueLogic::count($queueId),
-                // 失败数量
-                'failCount'     =>  MessageCountLogic::getFailedMessageCount($queueId),
-            ];
+            $list = $this->apiQueueService->getQueueInfo($queueId);
         }
         return [
             'list'   =>  $list,
         ];
     }
 
+    /**
+     * 获取队列详情
+     * 
+     * @Action
+     *
+     * @param string $queueId
+     * @return void
+     */
+    public function get($queueId)
+    {
+        return [
+            'data'  =>  $this->apiQueueService->getQueueInfo($queueId),
+        ];
+    }
 }

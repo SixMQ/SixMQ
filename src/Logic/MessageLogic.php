@@ -40,6 +40,28 @@ abstract class MessageLogic
     }
 
     /**
+     * 查询多条
+     *
+     * @param string $messageIds
+     * @return \SixMQ\Struct\Queue\Message[]
+     */
+    public static function select($messageIds)
+    {
+        $keys = [];
+        foreach($messageIds as $messageId)
+        {
+            $keys[] = RedisKey::getMessageId($messageId);
+        }
+        if(!$keys)
+        {
+            return [];
+        }
+        return PoolManager::use('redis', function($resource, $redis) use($keys){
+            return $redis->mget($keys);
+        });
+    }
+
+    /**
      * 移除消息
      *
      * @param string $messageId

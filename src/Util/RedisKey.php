@@ -52,6 +52,17 @@ abstract class RedisKey
     }
 
     /**
+     * 获取队列中储存所有消息ID的列表
+     *
+     * @param stirng $queueId
+     * @return stirng
+     */
+    public static function getQueueAll($queueId)
+    {
+        return 'sixmq:queue_all:' . $queueId;
+    }
+
+    /**
      * 获取工作队列
      *
      * @param stirng $queueId

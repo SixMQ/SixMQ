@@ -73,7 +73,8 @@ return [
             ],
             'async'    =>    [
                 'pool'    =>    [
-                    'class'        =>    \Imi\Redis\CoroutineRedisPool::class,
+                    // 'class'        =>    \Imi\Redis\CoroutineRedisPool::class,
+                    'class'        =>    \Imi\Redis\SyncRedisPool::class,
                     'config'    =>    [
                         'maxResources'    =>    100,
                         'minResources'    =>    20,

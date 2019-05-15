@@ -1,6 +1,7 @@
 <?php
 namespace SixMQ\Logic;
 
+use Imi\Util\Pagination;
 use SixMQ\Util\RedisKey;
 use Imi\Pool\PoolManager;
 use Imi\Redis\RedisHandler;
@@ -82,4 +83,27 @@ abstract class MessageCountLogic
         });
     }
 
+    /**
+     * 查询失败消息队列中消息ID列表
+     *
+     * @param string $queueId
+     * @param int $page
+     * @param int $count
+     * @param int $pages
+     * @return string[]
+     */
+    public static function selectFailMessageIds($queueId, $page, $count, &$pages)
+    {
+        $pagination = new Pagination($page, $count);
+
+        $key = RedisKey::getFailedList($queueId);
+        
+        $list = PoolManager::use('redis', function($resource, RedisHandler $redis) use($key, $pagination) {
+            return $redis->lrange($key, $pagination->getLimitOffset(), $pagination->getLimitEndOffset());
+        });
+
+        $records = static::getFailedMessageCount($queueId);
+        $pages = $pagination->calcPageCount($records);
+        return $list;
+    }
 }

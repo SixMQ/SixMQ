@@ -53,6 +53,8 @@ abstract class QueueService
         }
         // 消息存储
         MessageLogic::set($messageId, $message);
+        // 加入全部列表
+        QueueLogic::pushToAll($message->queueId, $messageId);
         // 统计
         MessageCountLogic::incQueueMessage($message->queueId);
         if(null !== $message->groupId)
@@ -200,10 +202,14 @@ abstract class QueueService
             $message->inTime = microtime(true);
             static::parsePopBlock($queueId);
         }
-        else if(null !== $message->groupId)
+        else
         {
-            MessageGroupLogic::setMessageStatus($message->queueId, $message->groupId, $message->messageId, GroupMessageStatus::COMPLETE);
-            MessageGroupLogic::setWorkingGroupMessage($message->queueId, $message->groupId, '');
+            if(null !== $message->groupId)
+            {
+                MessageGroupLogic::setMessageStatus($message->queueId, $message->groupId, $message->messageId, GroupMessageStatus::COMPLETE);
+                MessageGroupLogic::setWorkingGroupMessage($message->queueId, $message->groupId, '');
+            }
+            MessageCountLogic::addFailedMessage($messageId, $queueId);
         }
         // 处理push阻塞推送
         static::parsePushBlock($messageId);
