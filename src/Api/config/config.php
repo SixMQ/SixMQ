@@ -36,6 +36,7 @@ return [
         ],
 		'HttpDispatcher'	=>	[
 			'middlewares'	=>	[
+                \SixMQ\Api\Middlewares\CrossDomain::class,
 				\Imi\Server\Session\Middleware\HttpSessionMiddleware::class,
 				\Imi\Server\Http\Middleware\RouteMiddleware::class,
 			],
