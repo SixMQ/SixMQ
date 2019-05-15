@@ -9,9 +9,11 @@ use SixMQ\Logic\MessageWorkingLogic;
 use Imi\Server\Route\Annotation\Route;
 use Imi\Server\Route\Annotation\Action;
 use Imi\Server\Route\Annotation\Controller;
+use Imi\Server\Route\Annotation\Middleware;
 
 /**
  * @Controller("/message/")
+ * @Middleware(\SixMQ\Api\Middlewares\LoginStatus::class)
  */
 class MessageController extends HttpController
 {

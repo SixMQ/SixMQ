@@ -39,7 +39,6 @@ class ApiMessageService
                 $messageIds = QueueLogic::selectAllMessageIds($queueId, $page, $count, $pages);
                 break;
         }
-        var_dump($messageIds);
         return MessageLogic::select($messageIds);
     }
 
