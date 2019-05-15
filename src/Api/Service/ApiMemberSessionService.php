@@ -61,4 +61,14 @@ class ApiMemberSessionService
         return $this->isLogin;
     }
 
+
+    /**
+     * Get 用户名
+     *
+     * @return  string
+     */ 
+    public function getUsername()
+    {
+        return $this->username;
+    }
 }
