@@ -23,6 +23,7 @@ use Imi\Util\CoroutineChannelManager;
 use SixMQ\Logic\MessageGroupLogic;
 use SixMQ\Struct\Queue\GroupMessageStatus;
 use SixMQ\Logic\TimeoutLogic;
+use SixMQ\Logic\MessageCountLogic;
 
 abstract class QueueService
 {
@@ -52,6 +53,8 @@ abstract class QueueService
         }
         // 消息存储
         MessageLogic::set($messageId, $message);
+        // 统计
+        MessageCountLogic::incQueueMessage($message->queueId);
         if(null !== $message->groupId)
         {
             // 有分组，加入分组集合
@@ -227,7 +230,7 @@ abstract class QueueService
      * 消息处理完成
      *
      * @param \SixMQ\Struct\Queue\Client\Complete $data
-     * @return void
+     * @return \SixMQ\Struct\Queue\Server\Reply|null
      */
     public static function complete($data)
     {
@@ -260,6 +263,14 @@ abstract class QueueService
             MessageLogic::set($data->messageId, $message, Config::get('@app.common.message_ttl_when_complete'));
         }
 
+        if($data->success)
+        {
+            MessageCountLogic::removeFailedMessage($data->messageId, $data->queueId);
+        }
+        else
+        {
+            MessageCountLogic::addFailedMessage($data->messageId, $data->queueId);
+        }
 
         if(null !== $message->groupId)
         {
@@ -314,6 +325,8 @@ abstract class QueueService
             }
             // 移出队列
             QueueLogic::remove($message->queueId, $message->messageId);
+            
+            MessageCountLogic::removeFailedMessage($message->messageId, $message->queueId);
             $result = true;
         }
         else
@@ -377,6 +390,8 @@ abstract class QueueService
         MessageLogic::set($messageId, $message);
         // 处理push阻塞推送
         static::parsePushBlock($messageId);
+
+        MessageCountLogic::addFailedMessage($messageId, $queueId);
     }
 
     /**

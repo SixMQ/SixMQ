@@ -13,7 +13,7 @@ return [
     ],
     // 主服务器配置
     'mainServer'    =>    [
-        'namespace'    =>    'SixMQ\Web',
+        'namespace'    =>    'SixMQ\Api',
         'type'        =>    Type::HTTP,
         'host'        =>    '0.0.0.0',
         'port'        =>    8089,
@@ -23,7 +23,7 @@ return [
             'task_worker_num'   => 1,
             // 'worker_num'        => 8, // 设置为CPU的1-4倍最合理
             // 'task_worker_num'   => 8, // 根据实际情况设置
-            'max_coroutine'     => 4096, // 同时可创建协程数量
+            'max_coroutine'     => 40960, // 同时可创建协程数量
         ],
     ],
     // 子服务器（端口监听）配置
@@ -63,7 +63,7 @@ return [
                     ],
                 ],
                 'resource'    =>    [
-                    'host'        =>    '192.168.0.222',
+                    'host'        =>    '127.0.0.1',
                     'port'        =>    6379,
                     // 密码
                     // 'password'    =>    '',
@@ -80,7 +80,7 @@ return [
                     ],
                 ],
                 'resource'    =>    [
-                    'host'        =>    '192.168.0.222',
+                    'host'        =>    '127.0.0.1',
                     'port'        =>    6379,
                     // 密码
                     // 'password'    =>    '',

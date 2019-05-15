@@ -3,6 +3,7 @@ namespace SixMQ\Logic;
 
 use SixMQ\Util\RedisKey;
 use Imi\Pool\PoolManager;
+use Imi\Redis\RedisHandler;
 
 abstract class MessageWorkingLogic
 {
@@ -66,4 +67,18 @@ abstract class MessageWorkingLogic
             ]);
         });
     }
+
+    /**
+     * 获取队列长度
+     *
+     * @param string $queueId
+     * @return int
+     */
+    public static function count($queueId)
+    {
+        return PoolManager::use('redis', function($resource, RedisHandler $redis) use($queueId){
+            return $redis->zCard(RedisKey::getWorkingMessageSet($queueId));
+        });
+    }
+
 }

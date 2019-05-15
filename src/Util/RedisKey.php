@@ -134,4 +134,25 @@ abstract class RedisKey
         return 'sixmq:working_message_groups';
     }
 
+    /**
+     * 获取队列消息数统计
+     *
+     * @return string
+     */
+    public static function getQueueMessageCount()
+    {
+        return 'sixmq:queue_message_count';
+    }
+
+    /**
+     * 获取失败列表
+     *
+     * @param string $queueId
+     * @return string
+     */
+    public static function getFailedList($queueId)
+    {
+        return 'sixmq:failed_message:' . $queueId;
+    }
+
 }

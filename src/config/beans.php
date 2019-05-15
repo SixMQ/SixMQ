@@ -1,4 +1,6 @@
 <?php
+
+use Imi\Log\LogLevel;
 return [
     'hotUpdate'    =>    [
         // 'status'    =>    false, // 关闭热更新去除注释，不设置即为开启，建议生产环境关闭
@@ -16,5 +18,36 @@ return [
             dirname(__DIR__) . '/bin'
         ], // 要排除的路径数组，支持通配符*
         // 'defaultPath'    =>    [], // 设为数组则覆盖默认的监控路径
+    ],
+    'Logger'    =>    [
+        // 'coreHandlers'    =>    [],
+        'exHandlers'    =>    [
+            [
+                'class'        =>    \Imi\Log\Handler\File::class,
+                'options'    =>    [
+                    'levels'        => [LogLevel::INFO],
+                    'fileName'      => dirname(__DIR__) . '/logs/{Y}-{m}-{d}.log',
+                    'format'        => "{Y}-{m}-{d} {H}:{i}:{s} [{level}] {message}",
+                ],
+            ],
+            [
+                'class'        =>    \Imi\Log\Handler\File::class,
+                'options'    =>    [
+                    'levels'        => [
+                        LogLevel::ALERT,
+                        LogLevel::CRITICAL,
+                        LogLevel::DEBUG,
+                        LogLevel::EMERGENCY,
+                        LogLevel::ERROR,
+                        LogLevel::NOTICE,
+                        LogLevel::WARNING,
+                    ],
+                    'fileName'      => dirname(__DIR__) . '/logs/{Y}-{m}-{d}.log',
+                    'format'        => "{Y}-{m}-{d} {H}:{i}:{s} [{level}] {message}\n{trace}",
+                    'traceFormat'   => '#{index}  {call} called at [{file}:{line}]',
+                    'traceMinimum'  =>  true,
+                ],
+            ]
+        ],
     ],
 ];

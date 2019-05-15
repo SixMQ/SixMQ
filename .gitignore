@@ -4,3 +4,5 @@
 /vendor
 *.pid
 /bin/SixMQ.app.init
+/src/.runtime
+/src/logs

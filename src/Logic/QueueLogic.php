@@ -3,6 +3,7 @@ namespace SixMQ\Logic;
 
 use SixMQ\Util\RedisKey;
 use Imi\Pool\PoolManager;
+use Imi\Redis\RedisHandler;
 
 /**
  * 队列逻辑
@@ -114,4 +115,18 @@ abstract class QueueLogic
             return $redis->sadd(RedisKey::getQueueList(), $queueId);
         }) > 0;
     }
+
+    /**
+     * 获取队列消息数量
+     *
+     * @param string $queueId
+     * @return int
+     */
+    public static function count($queueId)
+    {
+        return (int)PoolManager::use('redis', function($resource, RedisHandler $redis) use($queueId) {
+            return $redis->lLen(RedisKey::getMessageQueue($queueId));
+        });
+    }
+
 }

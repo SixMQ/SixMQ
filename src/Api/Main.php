@@ -1,5 +1,5 @@
 <?php
-namespace SixMQ\Web;
+namespace SixMQ\Api;
 
 use Imi\Main\BaseMain;
 
