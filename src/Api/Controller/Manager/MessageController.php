@@ -10,6 +10,7 @@ use Imi\Server\Route\Annotation\Route;
 use Imi\Server\Route\Annotation\Action;
 use Imi\Server\Route\Annotation\Controller;
 use Imi\Server\Route\Annotation\Middleware;
+use SixMQ\Service\QueueService;
 
 /**
  * @Controller("/message/")
@@ -43,6 +44,21 @@ class MessageController extends HttpController
             'page'  =>  $page,
             'count' =>  $count,
             'pages' =>  $pages,
+        ];
+    }
+
+    /**
+     * 获取消息详情
+     * 
+     * @Action
+     *
+     * @param string $messageId
+     * @return void
+     */
+    public function get($messageId)
+    {
+        return [
+            'data'  =>  QueueService::getMessage($messageId),
         ];
     }
 
