@@ -86,11 +86,14 @@ abstract class QueueLogic
      * @param string $messageId
      * @return void
      */
-    public static function remove($queueId, $messageId)
+    public static function remove($queueId, $messageId, $removeFromAll)
     {
-        PoolManager::use('redis', function($resource, $redis) use($queueId, $messageId){
+        PoolManager::use('redis', function($resource, $redis) use($queueId, $messageId, $removeFromAll){
             $redis->lrem(RedisKey::getMessageQueue($queueId), $messageId, 1);
-            $redis->lrem(RedisKey::getQueueAll($queueId), $messageId, 1);
+            if($removeFromAll)
+            {
+                $redis->lrem(RedisKey::getQueueAll($queueId), $messageId, 1);
+            }
         });
     }
 

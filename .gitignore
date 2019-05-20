@@ -6,3 +6,4 @@
 /bin/SixMQ.app.init
 /src/.runtime
 /src/logs
+/src/.session

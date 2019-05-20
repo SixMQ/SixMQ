@@ -252,15 +252,15 @@ abstract class QueueService
         MessageWorkingLogic::remove($data->queueId, $data->messageId);
 
         // 移除队列（先触发了失败重新入队，尝试出列）
-        
-        QueueLogic::remove($data->queueId, $data->messageId);
 
         if($data->success && Config::get('@app.common.drop_message_when_complete'))
         {
+            QueueLogic::remove($data->queueId, $data->messageId, true);
             MessageLogic::removeMessage($message->messageId);
         }
         else
         {
+            QueueLogic::remove($data->queueId, $data->messageId, false);
             $message->consum = true;
             $message->success = $data->success;
             $message->resultData = $data->data;
@@ -330,7 +330,7 @@ abstract class QueueService
                 DelayLogic::remove($message->messageId);
             }
             // 移出队列
-            QueueLogic::remove($message->queueId, $message->messageId);
+            QueueLogic::remove($message->queueId, $message->messageId, true);
             
             MessageCountLogic::removeFailedMessage($message->messageId, $message->queueId);
             $result = true;
@@ -381,7 +381,7 @@ abstract class QueueService
     public static function expireMessage($queueId, $messageId)
     {
         // 移出队列
-        QueueLogic::remove($queueId, $messageId);
+        QueueLogic::remove($queueId, $messageId, false);
 
         // 消息执行超时
         $message = MessageLogic::get($messageId);
@@ -389,8 +389,9 @@ abstract class QueueService
         // 移出超时工作集合
         TimeoutLogic::remove($queueId, $messageId);
 
+        $message->consum = true;
         $message->success = false;
-        $message->resultData = 'message timeout';
+        $message->resultData = 'Not being consumed';
 
         // 设置消息数据
         MessageLogic::set($messageId, $message);

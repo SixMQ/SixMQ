@@ -3,8 +3,10 @@ namespace SixMQ\Logic;
 
 use SixMQ\Util\RedisKey;
 use Imi\Pool\PoolManager;
-use SixMQ\Struct\Queue\Message;
 use Imi\Redis\RedisHandler;
+use SixMQ\Struct\Queue\Message;
+use SixMQ\Struct\Queue\GroupMessageStatus;
+use SixMQ\Service\QueueService;
 
 /**
  * 消息逻辑
@@ -74,4 +76,44 @@ abstract class MessageLogic
         });
     }
 
+    /**
+     * 重新推送队列
+     *
+     * @param string $messageId
+     * @return void
+     */
+    public static function repush($messageId)
+    {
+        $message = static::get($messageId);
+        if(!$message)
+        {
+            throw new \RuntimeException('消息不存在');
+        }
+        if(null !== $message->groupId)
+        {
+            // 有分组，加入分组集合
+            MessageGroupLogic::setMessageStatus($message->queueId, $message->groupId, $messageId, GroupMessageStatus::FREE);
+            MessageGroupLogic::addWorkingGroup($message->queueId, $message->groupId);
+        }
+        else
+        {
+            $canNotifyPop = true;
+            // 加入超时队列
+            if($message->timeout > -1)
+            {
+                TimeoutLogic::push($message->queueId, $messageId, microtime(true) + $message->timeout);
+            }
+            // 加入消息队列
+            QueueLogic::rpush($message->queueId, $messageId);
+        }
+        // 队列记录
+        if(!QueueLogic::has($message->queueId))
+        {
+            QueueLogic::append($message->queueId);
+        }
+        if($canNotifyPop)
+        {
+            QueueService::parsePopBlock($message->queueId);
+        }
+    }
 }

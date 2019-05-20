@@ -37,7 +37,7 @@ class QueueController extends HttpController
         $list = [];
         foreach($queueList as $queueId)
         {
-            $list = $this->apiQueueService->getQueueInfo($queueId);
+            $list[] = $this->apiQueueService->getQueueInfo($queueId);
         }
         return [
             'list'   =>  $list,

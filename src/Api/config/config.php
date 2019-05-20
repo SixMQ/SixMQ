@@ -12,6 +12,9 @@ return [
             // 指定Session存储驱动类
             'handlerClass'    =>    \Imi\Server\Session\Handler\File::class,
         ],
+        'SessionFile'    =>    [
+            'savePath'    =>    dirname(__DIR__, 2) . '/.session/',
+        ],
         'SessionConfig'    =>    [
             // session 名称，默认为imisid
             // 'name'    =>    '',

@@ -3,7 +3,9 @@ namespace SixMQ\Api\ErrorHandler;
 
 use Imi\App;
 use Imi\RequestContext;
+use SixMQ\Api\Enums\ApiStatus;
 use Imi\Util\Http\Consts\MediaType;
+use SixMQ\Api\Exception\ApiException;
 use Imi\Util\Http\Consts\RequestHeader;
 use Imi\Server\Http\Error\IErrorHandler;
 
@@ -18,7 +20,7 @@ class HttpErrorHandler implements IErrorHandler
         else
         {
             $cancelThrow = false;
-            $code = 500;
+            $code = ApiStatus::ERROR;
         }
         $data = [
             'success'    =>    false,

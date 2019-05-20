@@ -7,6 +7,8 @@ use SixMQ\Logic\MessageCountLogic;
 use SixMQ\Logic\MessageWorkingLogic;
 use SixMQ\Api\Enums\MessageStatus;
 use SixMQ\Logic\MessageLogic;
+use SixMQ\Util\QueueError;
+use Imi\Util\ObjectArrayHelper;
 
 /**
  * @Bean("ApiMessageService")
@@ -19,12 +21,12 @@ class ApiMessageService
      * @param string $queueId
      * @param integer $page
      * @param integer $count
-     * @param integer $type
+     * @param integer $status
      * @return void
      */
-    public function selectList($queueId, $page, $count, &$pages = 0, $type = 0)
+    public function selectList($queueId, $page, $count, &$pages = 0, $status = 0)
     {
-        switch((int)$type)
+        switch((int)$status)
         {
             case MessageStatus::FREE:
                 $messageIds = QueueLogic::selectMessageIds($queueId, $page, $count, $pages);
@@ -39,7 +41,35 @@ class ApiMessageService
                 $messageIds = QueueLogic::selectAllMessageIds($queueId, $page, $count, $pages);
                 break;
         }
-        return MessageLogic::select($messageIds);
+        $messages = MessageLogic::select($messageIds);
+        foreach($messages as $i => $message)
+        {
+            $messages[$i] = $this->parseGet($message);
+        }
+        return $messages;
     }
 
+    /**
+     * 获取消息
+     *
+     * @param string $messageId
+     * @return \SixMQ\Struct\Queue\Message
+     */
+    public function get($messageId)
+    {
+        $message = QueueService::getMessage($messageId);
+        return $this->parseGet($message);
+    }
+
+    /**
+     * 处理消息
+     *
+     * @param \SixMQ\Struct\Queue\Message $message
+     * @return \SixMQ\Struct\Queue\Message
+     */
+    protected function parseGet($message)
+    {
+        ObjectArrayHelper::set($message, 'errorCount', QueueError::get($message->messageId));
+        return $message;
+    }
 }

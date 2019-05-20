@@ -27,7 +27,7 @@ abstract class QueueError
      */
     public static function get($messageId)
     {
-        return PoolManager::use('redis', function($resource, $redis) use($messageId) {
+        return (int)PoolManager::use('redis', function($resource, $redis) use($messageId) {
             return $redis->hGet(RedisKey::getMessageErrorCount(), $messageId);
         });
     }

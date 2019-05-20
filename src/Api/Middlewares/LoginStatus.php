@@ -6,6 +6,8 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use SixMQ\Api\Exception\ApiException;
+use SixMQ\Api\Enums\ApiStatus;
 
 /**
  * 登录状态验证中间件
@@ -21,7 +23,7 @@ class LoginStatus implements MiddlewareInterface
         $memberSession = RequestContext::getBean('ApiMemberSessionService');
         if(!$memberSession->isLogin())
         {
-            throw new \RuntimeException('未登录');
+            throw ApiException::fromCode(ApiStatus::NOT_LOGIN);
         }
         return $handler->handle($request);
     }

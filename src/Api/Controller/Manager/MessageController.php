@@ -11,6 +11,7 @@ use Imi\Server\Route\Annotation\Action;
 use Imi\Server\Route\Annotation\Controller;
 use Imi\Server\Route\Annotation\Middleware;
 use SixMQ\Service\QueueService;
+use SixMQ\Logic\MessageLogic;
 
 /**
  * @Controller("/message/")
@@ -58,8 +59,23 @@ class MessageController extends HttpController
     public function get($messageId)
     {
         return [
-            'data'  =>  QueueService::getMessage($messageId),
+            'data'  =>  $this->apiMessageService->get($messageId),
         ];
+    }
+
+    /**
+     * 重新推送消息进队列
+     *
+     * @Action
+     * 
+     * @Route(method="POST")
+     * 
+     * @param string $messageId
+     * @return void
+     */
+    public function repush($messageId)
+    {
+        MessageLogic::repush($messageId);
     }
 
 }
