@@ -1,8 +1,10 @@
 <?php
 namespace SixMQ\Logic;
 
+use Imi\Util\Pagination;
 use SixMQ\Util\RedisKey;
 use Imi\Pool\PoolManager;
+use Imi\Redis\RedisHandler;
 
 /**
  * 消息分组集合
@@ -164,4 +166,45 @@ abstract class MessageGroupLogic
             $redis->hSet($key, $queueId . ':' . $groupId, $messageId);
         });
     }
+
+    /**
+     * 查询分组中消息ID列表
+     *
+     * @param string $queueId
+     * @param string $groupId
+     * @param int $page
+     * @param int $count
+     * @param int $pages
+     * @return void
+     */
+    public static function selectGroupMessageIds($queueId, $groupId, $page, $count, &$pages)
+    {
+        $pagination = new Pagination($page, $count);
+
+        $key = RedisKey::getMessageGroupList($queueId, $groupId);
+        
+        $list = PoolManager::use('redis', function($resource, RedisHandler $redis) use($key, $pagination) {
+            return $redis->zRange($key, $pagination->getLimitOffset(), $pagination->getLimitEndOffset());
+        });
+
+        $records = static::getGroupMessageCount($queueId, $groupId);
+        $pages = $pagination->calcPageCount($records);
+        return $list;
+    }
+
+    /**
+     * 获取分组中消息总数
+     *
+     * @param string $queueId
+     * @param string $groupId
+     * @return void
+     */
+    public static function getGroupMessageCount($queueId, $groupId)
+    {
+        $key = RedisKey::getMessageGroupList($queueId, $groupId);
+        return (int)PoolManager::use('redis', function($resource, RedisHandler $redis) use($key) {
+            return $redis->zCard($key);
+        });
+    }
+
 }

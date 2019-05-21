@@ -9,6 +9,7 @@ use Imi\Util\ObjectArrayHelper;
 use SixMQ\Api\Enums\MessageStatus;
 use SixMQ\Logic\MessageCountLogic;
 use SixMQ\Logic\MessageWorkingLogic;
+use SixMQ\Logic\MessageGroupLogic;
 
 /**
  * @Bean("ApiMessageService")
@@ -47,6 +48,27 @@ class ApiMessageService
                 $messageIds = QueueLogic::selectAllMessageIds($queueId, $page, $count, $pages);
                 break;
         }
+        $messages = MessageLogic::select($messageIds);
+        foreach($messages as $i => $message)
+        {
+            $messages[$i] = $this->parseGet($message);
+        }
+        return $messages;
+    }
+
+    /**
+     * 查询分组消息列表
+     *
+     * @param string $queueId
+     * @param string $groupId
+     * @param integer $page
+     * @param integer $count
+     * @param integer $pages
+     * @return void
+     */
+    public function selectListByGroup($queueId, $groupId, $page, $count, &$pages = 0)
+    {
+        $messageIds = MessageGroupLogic::selectGroupMessageIds($queueId, $groupId, $page, $count, $pages);
         $messages = MessageLogic::select($messageIds);
         foreach($messages as $i => $message)
         {

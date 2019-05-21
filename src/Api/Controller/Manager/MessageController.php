@@ -49,6 +49,28 @@ class MessageController extends HttpController
     }
 
     /**
+     * 分组消息列表
+     * 
+     * @Action
+     *
+     * @param string $queueId
+     * @param string $groupId
+     * @param integer $page
+     * @param integer $count
+     * @return void
+     */
+    public function listByGroup($queueId, $groupId, $page = 1, $count = 15)
+    {
+        $list = $this->apiMessageService->selectListByGroup($queueId, $groupId, $page, $count, $pages);
+        return [
+            'list'  =>  $list,
+            'page'  =>  $page,
+            'count' =>  $count,
+            'pages' =>  $pages,
+        ];
+    }
+
+    /**
      * 获取消息详情
      * 
      * @Action
