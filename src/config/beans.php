@@ -10,12 +10,13 @@ return [
         // 'timespan'    =>    1, // 检测时间间隔，单位：秒
 
         // --- Inotify 扩展监控 ---
-        // 'monitorClass'    =>    \Imi\HotUpdate\Monitor\Inotify::class,
-        // 'timespan'    =>    0, // 检测时间间隔，单位：秒，使用扩展建议设为0性能更佳
+		'monitorClass'	=>	\Imi\HotUpdate\Monitor\Inotify::class,
+		'timespan'	=>	1, // 检测时间间隔，单位：秒，使用扩展建议设为0性能更佳
 
         // 'includePaths'    =>    [], // 要包含的路径数组
         'excludePaths'    =>    [
-            dirname(__DIR__) . '/bin'
+            dirname(__DIR__) . '/bin',
+            dirname(__DIR__) . '/Process',
         ], // 要排除的路径数组，支持通配符*
         // 'defaultPath'    =>    [], // 设为数组则覆盖默认的监控路径
     ],

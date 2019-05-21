@@ -9,21 +9,23 @@ use SixMQ\Util\RedisKey;
 use Imi\Pool\PoolManager;
 use SixMQ\Util\GenerateID;
 use SixMQ\Util\QueueError;
-use SixMQ\Logic\MessageLogic;
-use SixMQ\Struct\Queue\Message;
 use SixMQ\Logic\DelayLogic;
 use SixMQ\Logic\QueueLogic;
-use SixMQ\Logic\MessageWorkingLogic;
-use SixMQ\Struct\Queue\Server\Pop;
-use SixMQ\Struct\Queue\Server\Push;
-use SixMQ\Logic\QueuePopBlockLogic;
-use SixMQ\Struct\Queue\Server\Reply;
-use SixMQ\Logic\QueuePushBlockLogic;
-use Imi\Util\CoroutineChannelManager;
-use SixMQ\Logic\MessageGroupLogic;
-use SixMQ\Struct\Queue\GroupMessageStatus;
+use SixMQ\Logic\MessageLogic;
 use SixMQ\Logic\TimeoutLogic;
+use SixMQ\Struct\Queue\Message;
 use SixMQ\Logic\MessageCountLogic;
+use SixMQ\Logic\MessageGroupLogic;
+use SixMQ\Struct\Queue\Server\Pop;
+use SixMQ\Logic\QueuePopBlockLogic;
+use SixMQ\Struct\Queue\Server\Push;
+use SixMQ\Logic\MessageWorkingLogic;
+use SixMQ\Logic\QueuePushBlockLogic;
+use SixMQ\Struct\Queue\Server\Reply;
+use Imi\Util\CoroutineChannelManager;
+use SixMQ\Struct\Queue\GroupMessageStatus;
+use SixMQ\Struct\Util\MessageStatus;
+use Imi\Util\Text;
 
 abstract class QueueService
 {
@@ -57,7 +59,7 @@ abstract class QueueService
         QueueLogic::pushToAll($message->queueId, $messageId);
         // 统计
         MessageCountLogic::incQueueMessage($message->queueId);
-        if(null !== $message->groupId)
+        if(!Text::isEmpty($message->groupId))
         {
             // 有分组，加入分组集合
             MessageGroupLogic::setMessageStatus($data->queueId, $data->groupId, $messageId, GroupMessageStatus::FREE);
@@ -137,7 +139,7 @@ abstract class QueueService
      *
      * @param \SixMQ\Struct\Queue\Client\Pop $data
      * @param string $messageId
-     * @param string $message
+     * @param \SixMQ\Struct\Queue\Message $message
      * @param \Redis|\Swoole\Coroutine\Redis $redis
      * @return boolean
      */
@@ -157,6 +159,9 @@ abstract class QueueService
             {
                 return false;
             }
+            // 保存消息
+            $message->status = MessageStatus::WORKING;
+            MessageLogic::set($messageId, $message);
             // 消息处理最大超时时间
             $expireTime = microtime(true) + $data->maxExpire;
             // 加入工作集合
@@ -190,26 +195,29 @@ abstract class QueueService
 
         $message->success = false;
         $message->resultData = 'task timeout';
-        $message->consum = false;
-        // 设置消息数据
-        MessageLogic::set($messageId, $message);
+        $message->consum = true;
 
         // 失败重试次数限制
         if(QueueError::inc($messageId) < $message->retry)
         {
             // 加入队列
+            $message->status = MessageStatus::FREE;
+            // 设置消息数据
+            MessageLogic::set($messageId, $message);
             QueueLogic::rpush($queueId, $messageId);
             $message->inTime = microtime(true);
             static::parsePopBlock($queueId);
         }
         else
         {
-            if(null !== $message->groupId)
+            $message->status = MessageStatus::TIMEOUT;
+            // 设置消息数据
+            MessageLogic::set($messageId, $message);
+            if(!Text::isEmpty($message->groupId))
             {
                 MessageGroupLogic::setMessageStatus($message->queueId, $message->groupId, $message->messageId, GroupMessageStatus::COMPLETE);
                 MessageGroupLogic::setWorkingGroupMessage($message->queueId, $message->groupId, '');
             }
-            MessageCountLogic::addFailedMessage($messageId, $queueId);
         }
         // 处理push阻塞推送
         static::parsePushBlock($messageId);
@@ -226,6 +234,11 @@ abstract class QueueService
     {
         // 移出工作集合
         MessageWorkingLogic::remove($queueId, $messageId);
+
+        // 改变状态
+        $message = MessageLogic::get($messageId);
+        $message->status = MessageStatus::FREE;
+        MessageLogic::set($messageId, $message);
 
         // 加入队列
         QueueLogic::lpush($queueId, $messageId);
@@ -264,21 +277,13 @@ abstract class QueueService
             $message->consum = true;
             $message->success = $data->success;
             $message->resultData = $data->data;
+            $message->status = $data->success ? MessageStatus::SUCCESS : MessageStatus::FAIL;
     
             // 设置消息数据
             MessageLogic::set($data->messageId, $message, Config::get('@app.common.message_ttl_when_complete'));
         }
 
-        if($data->success)
-        {
-            MessageCountLogic::removeFailedMessage($data->messageId, $data->queueId);
-        }
-        else
-        {
-            MessageCountLogic::addFailedMessage($data->messageId, $data->queueId);
-        }
-
-        if(null !== $message->groupId)
+        if(!Text::isEmpty($message->groupId))
         {
             // 分组正在执行的任务置空
             MessageGroupLogic::setMessageStatus($message->queueId, $message->groupId, $message->messageId, GroupMessageStatus::COMPLETE);
@@ -316,7 +321,7 @@ abstract class QueueService
         if($message)
         {
             // 移出分组
-            if(null !== $message->groupId)
+            if(!Text::isEmpty($message->groupId))
             {
                 MessageGroupLogic::setMessageStatus($message->queueId, $message->groupId, $message->messageId, GroupMessageStatus::CANCEL);
                 if($message->messageId === MessageGroupLogic::getWorkingMessage($message->queueId, $message->groupId))
@@ -392,13 +397,12 @@ abstract class QueueService
         $message->consum = true;
         $message->success = false;
         $message->resultData = 'Not being consumed';
+        $message->status = MessageStatus::TIMEOUT;
 
         // 设置消息数据
         MessageLogic::set($messageId, $message);
         // 处理push阻塞推送
         static::parsePushBlock($messageId);
-
-        MessageCountLogic::addFailedMessage($messageId, $queueId);
     }
 
     /**

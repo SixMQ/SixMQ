@@ -1,14 +1,14 @@
 <?php
 namespace SixMQ\Api\Service;
 
+use SixMQ\Util\QueueError;
 use SixMQ\Logic\QueueLogic;
 use Imi\Bean\Annotation\Bean;
+use SixMQ\Logic\MessageLogic;
+use Imi\Util\ObjectArrayHelper;
+use SixMQ\Api\Enums\MessageStatus;
 use SixMQ\Logic\MessageCountLogic;
 use SixMQ\Logic\MessageWorkingLogic;
-use SixMQ\Api\Enums\MessageStatus;
-use SixMQ\Logic\MessageLogic;
-use SixMQ\Util\QueueError;
-use Imi\Util\ObjectArrayHelper;
 
 /**
  * @Bean("ApiMessageService")
@@ -34,8 +34,14 @@ class ApiMessageService
             case MessageStatus::WORKING:
                 $messageIds = MessageWorkingLogic::selectMessageIds($queueId, $page, $count, $pages);
                 break;
+            case MessageStatus::SUCCESS:
+                $messageIds = MessageCountLogic::selectSuccessMessageIds($queueId, $page, $count, $pages);
+                break;
             case MessageStatus::FAIL:
                 $messageIds = MessageCountLogic::selectFailMessageIds($queueId, $page, $count, $pages);
+                break;
+            case MessageStatus::TIMEOUT:
+                $messageIds = MessageCountLogic::selectTimeoutMessageIds($queueId, $page, $count, $pages);
                 break;
             default:
                 $messageIds = QueueLogic::selectAllMessageIds($queueId, $page, $count, $pages);
@@ -70,6 +76,7 @@ class ApiMessageService
     protected function parseGet($message)
     {
         ObjectArrayHelper::set($message, 'errorCount', QueueError::get($message->messageId));
+        ObjectArrayHelper::set($message, 'statusText', MessageStatus::getText($message->status));
         return $message;
     }
 }

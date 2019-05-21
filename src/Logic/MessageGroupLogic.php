@@ -3,7 +3,6 @@ namespace SixMQ\Logic;
 
 use SixMQ\Util\RedisKey;
 use Imi\Pool\PoolManager;
-use SixMQ\Struct\Queue\GroupMessageStatus;
 
 /**
  * 消息分组集合

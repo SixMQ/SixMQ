@@ -6,5 +6,6 @@ return [
     ],
     'beanScan'    =>    [
         'SixMQ\MQService\Controller',
+        'SixMQ\WorkerListener',
     ],
 ];

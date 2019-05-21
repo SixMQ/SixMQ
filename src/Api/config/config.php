@@ -6,6 +6,7 @@ return [
         'SixMQ\Api\Service',
         'SixMQ\Api\Enums',
         'SixMQ\Api\Middlewares',
+        'SixMQ\WorkerListener',
     ],
     'beans'	=>	[
         'SessionManager'    =>    [

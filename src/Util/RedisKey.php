@@ -166,4 +166,26 @@ abstract class RedisKey
         return 'sixmq:failed_message:' . $queueId;
     }
 
+    /**
+     * 获取成功列表
+     *
+     * @param string $queueId
+     * @return string
+     */
+    public static function getSuccessList($queueId)
+    {
+        return 'sixmq:success_message:' . $queueId;
+    }
+
+    /**
+     * 获取超时列表
+     *
+     * @param string $queueId
+     * @return string
+     */
+    public static function getTimeoutList($queueId)
+    {
+        return 'sixmq:timeout_message:' . $queueId;
+    }
+
 }

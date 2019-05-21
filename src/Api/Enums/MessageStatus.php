@@ -17,8 +17,18 @@ class MessageStatus extends BaseEnum
     const WORKING = 2;
 
     /**
-     * @EnumItem("失败")
+     * @EnumItem("成功")
      */
-    const FAIL = 3;
+    const SUCCESS = 3;
+
+    /**
+     * @EnumItem("消费失败")
+     */
+    const FAIL = 4;
+
+    /**
+     * @EnumItem("超时失败")
+     */
+    const TIMEOUT = 5;
 
 }

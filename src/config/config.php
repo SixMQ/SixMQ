@@ -65,6 +65,7 @@ return [
                 'resource'    =>    [
                     'host'        =>    '127.0.0.1',
                     'port'        =>    6379,
+                    'serialize'   =>    false,
                     // 密码
                     // 'password'    =>    '',
                     // 第几个库
@@ -83,6 +84,7 @@ return [
                 'resource'    =>    [
                     'host'        =>    '127.0.0.1',
                     'port'        =>    6379,
+                    'serialize'   =>    false,
                     // 密码
                     // 'password'    =>    '',
                     // 第几个库
