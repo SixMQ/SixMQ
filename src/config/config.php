@@ -20,7 +20,7 @@ return [
         'configs'    =>    [
             // 开发时可以都设为1
             'worker_num'        => 1,
-            'task_worker_num'   => 1,
+            'task_worker_num'   => 0,
             // 'worker_num'        => 8, // 设置为CPU的1-4倍最合理
             // 'task_worker_num'   => 8, // 根据实际情况设置
             'max_coroutine'     => 40960, // 同时可创建协程数量
@@ -59,7 +59,7 @@ return [
                     'class'        =>    \Imi\Redis\SyncRedisPool::class,
                     'config'    =>    [
                         'maxResources'    =>    100,
-                        'minResources'    =>    20,
+                        'minResources'    =>    1,
                     ],
                 ],
                 'resource'    =>    [
@@ -74,11 +74,10 @@ return [
             ],
             'async'    =>    [
                 'pool'    =>    [
-                    // 'class'        =>    \Imi\Redis\CoroutineRedisPool::class,
-                    'class'        =>    \Imi\Redis\SyncRedisPool::class,
+                    'class'        =>    \Imi\Redis\CoroutineRedisPool::class,
                     'config'    =>    [
                         'maxResources'    =>    100,
-                        'minResources'    =>    20,
+                        'minResources'    =>    1,
                     ],
                 ],
                 'resource'    =>    [

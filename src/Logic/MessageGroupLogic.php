@@ -35,7 +35,7 @@ abstract class MessageGroupLogic
                         break;
                     }
                 }
-                if(0 === $it)
+                if(0 == $it)
                 {
                     break;
                 }
