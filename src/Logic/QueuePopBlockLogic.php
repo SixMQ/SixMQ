@@ -22,11 +22,11 @@ abstract class QueuePopBlockLogic
     {
         PoolManager::use('redis', function($resource, $redis) use($fd, $data){
             $key = RedisKey::getQueuePopList($data->queueId);
-            $redis->rpush($key, [
-                'fd'            =>    $fd,
-                'popData'        =>    $data,
-                'time'            =>    microtime(true),
-            ]);
+            $redis->rpush($key, json_encode([
+                'fd'        =>    $fd,
+                'popData'   =>    $data,
+                'time'      =>    microtime(true),
+            ]));
         });
     }
 
@@ -49,6 +49,7 @@ abstract class QueuePopBlockLogic
                 {
                     break;
                 }
+                $data = json_decode($data, true);
                 // 超时判断
                 if(-1 !== $data['popData']->block && $data['time'] + $data['popData']->block <= microtime(true))
                 {
