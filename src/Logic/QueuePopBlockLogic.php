@@ -44,17 +44,18 @@ abstract class QueuePopBlockLogic
             do{
                 // 等待pop的队列弹出
                 $key = RedisKey::getQueuePopList($queueId);
-                $data = $redis->lpop($key);
-                if(!$data)
+                $rawData = $redis->lpop($key);
+                if(!$rawData)
                 {
                     break;
                 }
-                $data = json_decode($data, true);
+                $data = json_decode($rawData, true);
                 // 超时判断
                 if(-1 !== $data['popData']['block'] && $data['time'] + $data['popData']['block'] <= microtime(true))
                 {
                     continue;
                 }
+                $popData = $data['popData'];
                 $popData['block'] = 0;
                 // 弹出消息
                 $popResult = QueueService::pop($popData, $redis);
