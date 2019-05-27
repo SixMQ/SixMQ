@@ -51,7 +51,7 @@ abstract class QueuePopBlockLogic
                 }
                 $data = json_decode($data, true);
                 // 超时判断
-                if(-1 !== $data['popData']->block && $data['time'] + $data['popData']->block <= microtime(true))
+                if(-1 !== $data['popData']['block'] && $data['time'] + $data['popData']['block'] <= microtime(true))
                 {
                     continue;
                 }
