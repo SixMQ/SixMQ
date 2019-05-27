@@ -55,15 +55,14 @@ abstract class QueuePopBlockLogic
                 {
                     continue;
                 }
-                $popData = clone $data['popData'];
-                $popData->block = 0;
+                $popData['block'] = 0;
                 // 弹出消息
                 $popResult = QueueService::pop($popData, $redis);
                 if(!$popResult->success)
                 {
                     break;
                 }
-                $popResult->flag = $popData->flag;
+                $popResult->flag = $popData['flag'];
                 $sendData = DataParser::encode($popResult);
                 if(!$swooleServer->send($data['fd'], $sendData))
                 {
