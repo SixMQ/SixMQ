@@ -92,6 +92,22 @@ abstract class MessageGroupLogic
     }
 
     /**
+     * 移出列表
+     *
+     * @param string $queueId
+     * @param string $groupId
+     * @param string $messageId
+     * @return void
+     */
+    public static function remove($queueId, $groupId, $messageId)
+    {
+        $key = RedisKey::getMessageGroupList($queueId, $groupId);
+        PoolManager::use('redis', function($resource, RedisHandler $redis) use($key, $messageId) {
+            $redis->zRem($key, $messageId);
+        });
+    }
+
+    /**
      * 分组中是否有正在工作的消息
      *
      * @param string $queueId

@@ -7,6 +7,7 @@ use SixMQ\Logic\MessageExpire;
 use SixMQ\Logic\MessageCountLogic;
 use Imi\Process\Annotation\Process;
 use SixMQ\Logic\QueueLogic;
+use SixMQ\Logic\MessageGroupLogic;
 
 /**
  * @Process(name="SixMQ-MessageTTL", unique=true)
@@ -60,6 +61,8 @@ class MessageTTL extends BaseProcess
                 MessageCountLogic::removeFailedMessage($item['messageId'], $item['queueId']);
                 MessageCountLogic::removeTimeoutMessage($item['messageId'], $item['queueId']);
                 QueueLogic::removeFromAll($item['queueId'], $item['messageId']);
+                // 分组删除
+                MessageGroupLogic::remove($item['queueId'], $item['groupId'], $item['messageId']);
             }
             MessageExpire::removeMessages($data);
         }

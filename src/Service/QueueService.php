@@ -292,7 +292,7 @@ abstract class QueueService
             MessageLogic::set($data->messageId, $message, $ttl);
             if($ttl > 0)
             {
-                MessageExpire::add($data->messageId, $data->queueId, $ttl);
+                MessageExpire::add($message, $ttl);
             }
         }
 

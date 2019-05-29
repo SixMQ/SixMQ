@@ -10,20 +10,20 @@ abstract class MessageExpire
     /**
      * 增加消息过期处理
      *
-     * @param string $messageId
-     * @param string $queueId
+     * @param \SixMQ\Struct\Queue\Message $message
      * @param int $ttl
      * @return void
      */
-    public static function add($messageId, $queueId, $ttl)
+    public static function add($message, $ttl)
     {
         $expireTime = time() + $ttl;
         $data = json_encode([
-            'messageId'     =>  $messageId,
-            'queueId'       =>  $queueId,
+            'messageId'     =>  $message->messageId,
+            'queueId'       =>  $message->queueId,
+            'groupId'       =>  $message->groupId,
         ]);
         $key = RedisKey::getMessageExpire();
-        PoolManager::use('redis', function($resource, RedisHandler $redis) use($messageId, $queueId, $ttl, $key, $expireTime, $data) {
+        PoolManager::use('redis', function($resource, RedisHandler $redis) use($key, $expireTime, $data) {
             $redis->zAdd($key, $expireTime, $data);
         });
     }
