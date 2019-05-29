@@ -27,10 +27,12 @@ class ApiQueueService
             'workingCount'  =>  MessageWorkingLogic::count($queueId),
             // 等待处理数量
             'waitingCount'  =>  QueueLogic::count($queueId),
+            // 成功数量
+            'successCount'  =>  MessageCountLogic::getSuccessMessageCount($queueId),
             // 失败数量
             'failCount'     =>  MessageCountLogic::getFailedMessageCount($queueId),
             // 超时数量
-            'timeoutCount'     =>  MessageCountLogic::getTimeoutMessageCount($queueId),
+            'timeoutCount'  =>  MessageCountLogic::getTimeoutMessageCount($queueId),
         ];
     }
 

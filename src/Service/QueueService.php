@@ -26,6 +26,7 @@ use Imi\Util\CoroutineChannelManager;
 use SixMQ\Struct\Queue\GroupMessageStatus;
 use SixMQ\Struct\Util\MessageStatus;
 use Imi\Util\Text;
+use SixMQ\Logic\MessageExpire;
 
 abstract class QueueService
 {
@@ -280,7 +281,19 @@ abstract class QueueService
             $message->status = $data->success ? MessageStatus::SUCCESS : MessageStatus::FAIL;
     
             // 设置消息数据
-            MessageLogic::set($data->messageId, $message, Config::get('@app.common.message_ttl_when_complete'));
+            if($data->success)
+            {
+                $ttl = Config::get('@app.common.message_ttl_when_complete');
+            }
+            else
+            {
+                $ttl = 0;
+            }
+            MessageLogic::set($data->messageId, $message, $ttl);
+            if($ttl > 0)
+            {
+                MessageExpire::add($data->messageId, $data->queueId, $ttl);
+            }
         }
 
         if(!Text::isEmpty($message->groupId))

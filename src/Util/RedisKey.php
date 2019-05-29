@@ -188,4 +188,44 @@ abstract class RedisKey
         return 'sixmq:timeout_message:' . $queueId;
     }
 
+    /**
+     * 获取失败计数
+     *
+     * @return string
+     */
+    public static function getFailedCount()
+    {
+        return 'sixmq:failed_count';
+    }
+
+    /**
+     * 获取成功计数
+     *
+     * @return string
+     */
+    public static function getSuccessCount()
+    {
+        return 'sixmq:success_count';
+    }
+
+    /**
+     * 获取超时计数
+     *
+     * @return string
+     */
+    public static function getTimeoutCount()
+    {
+        return 'sixmq:timeout_count';
+    }
+
+    /**
+     * 消息过期处理
+     *
+     * @return void
+     */
+    public static function getMessageExpire()
+    {
+        return 'sixmq:message_expire';
+    }
+
 }

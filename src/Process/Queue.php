@@ -16,13 +16,13 @@ use SixMQ\Logic\TimeoutLogic;
 use SixMQ\Logic\MessageLogic;
 
 /**
- * @Process(name="SixMQQueueMonitor", unique=true)
+ * @Process(name="SixMQ-QueueMonitor", unique=true)
  */
 class Queue extends BaseProcess
 {
     public function run(\Swoole\Process $process)
     {
-        echo 'Process [SixMQQueueMonitor] start', PHP_EOL;
+        echo 'Process [SixMQ-QueueMonitor] start', PHP_EOL;
         // 消息超时
         $this->goTask(function(){
             foreach(QueueLogic::getList() as $queueId)

@@ -48,9 +48,13 @@ abstract class MessageCountLogic
      */
     public static function addFailedMessage($messageId, $queueId)
     {
-        return PoolManager::use('redis', function($resource, RedisHandler $redis) use($messageId, $queueId) {
-            $key = RedisKey::getFailedList($queueId);
-            return $redis->lpush($key, $messageId);
+        $key = RedisKey::getFailedList($queueId);
+        $countKey = RedisKey::getFailedCount();
+        PoolManager::use('redis', function($resource, RedisHandler $redis) use($messageId, $queueId, $key, $countKey) {
+            $redis->multi();
+            $redis->lpush($key, $messageId);
+            $redis->hIncrBy($countKey, $queueId, 1);
+            $redis->exec();
         });
     }
 
@@ -63,9 +67,23 @@ abstract class MessageCountLogic
      */
     public static function removeFailedMessage($messageId, $queueId)
     {
-        return PoolManager::use('redis', function($resource, RedisHandler $redis) use($messageId, $queueId) {
+        PoolManager::use('redis', function($resource, RedisHandler $redis) use($messageId, $queueId) {
             $key = RedisKey::getFailedList($queueId);
-            return $redis->lrem($key, $messageId, 1);
+            $redis->lrem($key, $messageId, 1);
+        });
+    }
+
+    /**
+     * 获取队列失败消息数量
+     *
+     * @param string $queueId
+     * @return int
+     */
+    public static function getFailedMessageRealCount($queueId)
+    {
+        return (int)PoolManager::use('redis', function($resource, RedisHandler $redis) use($queueId) {
+            $key = RedisKey::getFailedList($queueId);
+            return $redis->llen($key);
         });
     }
 
@@ -77,9 +95,9 @@ abstract class MessageCountLogic
      */
     public static function getFailedMessageCount($queueId)
     {
-        return (int)PoolManager::use('redis', function($resource, RedisHandler $redis) use($queueId) {
-            $key = RedisKey::getFailedList($queueId);
-            return $redis->llen($key);
+        $key = RedisKey::getFailedCount();
+        return (int)PoolManager::use('redis', function($resource, RedisHandler $redis) use($queueId, $key) {
+            return $redis->hGet($key, $queueId);
         });
     }
 
@@ -102,7 +120,7 @@ abstract class MessageCountLogic
             return $redis->lrange($key, $pagination->getLimitOffset(), $pagination->getLimitEndOffset());
         });
 
-        $records = static::getFailedMessageCount($queueId);
+        $records = static::getFailedMessageRealCount($queueId);
         $pages = $pagination->calcPageCount($records);
         return $list;
     }
@@ -116,9 +134,13 @@ abstract class MessageCountLogic
      */
     public static function addSuccessMessage($messageId, $queueId)
     {
-        return PoolManager::use('redis', function($resource, RedisHandler $redis) use($messageId, $queueId) {
-            $key = RedisKey::getSuccessList($queueId);
-            return $redis->lpush($key, $messageId);
+        $key = RedisKey::getSuccessList($queueId);
+        $countKey = RedisKey::getSuccessCount();
+        PoolManager::use('redis', function($resource, RedisHandler $redis) use($messageId, $queueId, $key, $countKey) {
+            $redis->multi();
+            $redis->lpush($key, $messageId);
+            $redis->hIncrBy($countKey, $queueId, 1);
+            $redis->exec();
         });
     }
 
@@ -133,7 +155,22 @@ abstract class MessageCountLogic
     {
         return PoolManager::use('redis', function($resource, RedisHandler $redis) use($messageId, $queueId) {
             $key = RedisKey::getSuccessList($queueId);
+            var_dump($key, $messageId, 1);
             return $redis->lrem($key, $messageId, 1);
+        });
+    }
+
+    /**
+     * 获取队列成功消息数量
+     *
+     * @param string $queueId
+     * @return int
+     */
+    public static function getSuccessMessageRealCount($queueId)
+    {
+        return (int)PoolManager::use('redis', function($resource, RedisHandler $redis) use($queueId) {
+            $key = RedisKey::getSuccessList($queueId);
+            return $redis->llen($key);
         });
     }
 
@@ -145,9 +182,9 @@ abstract class MessageCountLogic
      */
     public static function getSuccessMessageCount($queueId)
     {
-        return (int)PoolManager::use('redis', function($resource, RedisHandler $redis) use($queueId) {
-            $key = RedisKey::getSuccessList($queueId);
-            return $redis->llen($key);
+        $key = RedisKey::getSuccessCount();
+        return (int)PoolManager::use('redis', function($resource, RedisHandler $redis) use($queueId, $key) {
+            return $redis->hGet($key, $queueId);
         });
     }
 
@@ -170,7 +207,7 @@ abstract class MessageCountLogic
             return $redis->lrange($key, $pagination->getLimitOffset(), $pagination->getLimitEndOffset());
         });
 
-        $records = static::getFailedMessageCount($queueId);
+        $records = static::getSuccessMessageRealCount($queueId);
         $pages = $pagination->calcPageCount($records);
         return $list;
     }
@@ -184,9 +221,13 @@ abstract class MessageCountLogic
      */
     public static function addTimeoutMessage($messageId, $queueId)
     {
-        return PoolManager::use('redis', function($resource, RedisHandler $redis) use($messageId, $queueId) {
-            $key = RedisKey::getTimeoutList($queueId);
-            return $redis->lpush($key, $messageId);
+        $key = RedisKey::getTimeoutList($queueId);
+        $countKey = RedisKey::getTimeoutCount();
+        PoolManager::use('redis', function($resource, RedisHandler $redis) use($messageId, $queueId, $key, $countKey) {
+            $redis->multi();
+            $redis->lpush($key, $messageId);
+            $redis->hIncrBy($countKey, $queueId, 1);
+            $redis->exec();
         });
     }
 
@@ -211,11 +252,25 @@ abstract class MessageCountLogic
      * @param string $queueId
      * @return int
      */
-    public static function getTimeoutMessageCount($queueId)
+    public static function getTimeoutMessageRealCount($queueId)
     {
         return (int)PoolManager::use('redis', function($resource, RedisHandler $redis) use($queueId) {
             $key = RedisKey::getTimeoutList($queueId);
             return $redis->llen($key);
+        });
+    }
+
+    /**
+     * 获取队列超时消息数量
+     *
+     * @param string $queueId
+     * @return int
+     */
+    public static function getTimeoutMessageCount($queueId)
+    {
+        $key = RedisKey::getTimeoutCount();
+        return (int)PoolManager::use('redis', function($resource, RedisHandler $redis) use($queueId, $key) {
+            return $redis->hGet($key, $queueId);
         });
     }
 
@@ -238,7 +293,7 @@ abstract class MessageCountLogic
             return $redis->lrange($key, $pagination->getLimitOffset(), $pagination->getLimitEndOffset());
         });
 
-        $records = static::getFailedMessageCount($queueId);
+        $records = static::getTimeoutMessageRealCount($queueId);
         $pages = $pagination->calcPageCount($records);
         return $list;
     }

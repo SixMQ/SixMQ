@@ -26,6 +26,8 @@ class OnServerCreate implements IEventListener
     public function handle(EventParam $e)
     {
         // 队列监控
-        ProcessManager::runWithManager('SixMQQueueMonitor');
+        ProcessManager::runWithManager('SixMQ-QueueMonitor');
+        // 消息超时
+        ProcessManager::runWithManager('SixMQ-MessageTTL');
     }
 }

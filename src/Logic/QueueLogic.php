@@ -40,7 +40,7 @@ abstract class QueueLogic
     }
 
     /**
-     * 加入消息队列
+     * 加入所有消息队列
      *
      * @param string $queueId
      * @param string $messageId
@@ -50,6 +50,20 @@ abstract class QueueLogic
     {
         PoolManager::use('redis', function($resource, $redis) use($queueId, $messageId){
             $redis->rpush(RedisKey::getQueueAll($queueId), $messageId);
+        });
+    }
+
+    /**
+     * 移出所有消息队列
+     *
+     * @param string $queueId
+     * @param string $messageId
+     * @return void
+     */
+    public static function removeFromAll($queueId, $messageId)
+    {
+        PoolManager::use('redis', function($resource, $redis) use($queueId, $messageId){
+            $redis->lrem(RedisKey::getQueueAll($queueId), $messageId, 1);
         });
     }
 
