@@ -99,6 +99,7 @@ class ApiMessageService
     {
         ObjectArrayHelper::set($message, 'errorCount', QueueError::get($message->messageId));
         ObjectArrayHelper::set($message, 'statusText', MessageStatus::getText($message->status));
+        ObjectArrayHelper::set($message, 'ttl', MessageLogic::getTTL($message->messageId));
         return $message;
     }
 }

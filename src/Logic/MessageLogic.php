@@ -147,4 +147,18 @@ abstract class MessageLogic
             QueueService::parsePopBlock($message->queueId);
         }
     }
+
+    /**
+     * 获取消息过期时间
+     *
+     * @param string $messageId
+     * @return void
+     */
+    public static function getTTL($messageId)
+    {
+        return PoolManager::use('redis', function($resource, $redis) use($messageId){
+            return $redis->ttl(RedisKey::getMessageId($messageId));
+        });
+    }
+
 }
