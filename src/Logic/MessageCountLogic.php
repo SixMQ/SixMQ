@@ -155,7 +155,6 @@ abstract class MessageCountLogic
     {
         return PoolManager::use('redis', function($resource, RedisHandler $redis) use($messageId, $queueId) {
             $key = RedisKey::getSuccessList($queueId);
-            var_dump($key, $messageId, 1);
             return $redis->lrem($key, $messageId, 1);
         });
     }
