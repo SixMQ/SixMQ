@@ -51,4 +51,10 @@ return [
             ]
         ],
     ],
+    'ConnectContextRedis'   =>  [
+        'dataEncode'    =>  'json_encode',
+        'dataDecode'    =>  function($data){
+            return json_decode($data, true);
+        },
+    ],
 ];

@@ -6,6 +6,7 @@ use Imi\Util\File;
 use Imi\RequestContext;
 use Imi\Bean\Annotation\Bean;
 use Imi\Server\Session\Session;
+use Imi\Config;
 
 /**
  * @Bean("ApiAuthService")
@@ -21,9 +22,7 @@ class ApiAuthService
      */
     public function login($username, $password)
     {
-        $file = File::path(Imi::getNamespacePath('SixMQ\config'), 'auth.json');
-        $data = json_decode(file_get_contents($file), true);
-        if(!isset($data['accounts'][$username]) || $data['accounts'][$username]['password'] !== $password)
+        if(Config::get('auth.accounts' . $username . '.password') !== $password)
         {
             throw new \RuntimeException('登录失败');
         }

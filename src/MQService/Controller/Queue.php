@@ -5,9 +5,9 @@ use Imi\Config;
 use SixMQ\Util\RedisKey;
 use Imi\Pool\PoolManager;
 use SixMQ\Util\GenerateID;
+use SixMQ\Logic\QueueLogic;
 use SixMQ\Service\QueueService;
 use SixMQ\Struct\Queue\Message;
-use SixMQ\Logic\QueueLogic;
 use SixMQ\Struct\BaseServerStruct;
 use SixMQ\Struct\Queue\Server\Pop;
 use SixMQ\Struct\Queue\Server\Reply;
@@ -16,9 +16,11 @@ use SixMQ\Struct\Queue\Server\GetMessage;
 use Imi\Server\Route\Annotation\Tcp\TcpRoute;
 use Imi\Server\Route\Annotation\Tcp\TcpAction;
 use Imi\Server\Route\Annotation\Tcp\TcpController;
+use Imi\Server\Route\Annotation\Tcp\TcpMiddleware;
 
 /**
  * @TcpController
+ * @TcpMiddleware("SixMQ\MQService\Middleware\LoginStatus")
  */
 class Queue extends Base
 {
