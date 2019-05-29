@@ -22,7 +22,7 @@ abstract class RedisKey
                 {
                     $redis->del($list);
                 }
-                if(0 === $it)
+                if(0 == $it)
                 {
                     break;
                 }
