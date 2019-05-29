@@ -13,7 +13,7 @@ use Imi\Server\Route\Annotation\Middleware;
 
 /**
  * @Controller("/queue/")
- * @Middleware(\SixMQ\Api\Middlewares\LoginStatus::class)
+ * @Middleware(\SixMQ\Api\Middleware\LoginStatus::class)
  */
 class QueueController extends HttpController
 {

@@ -1,5 +1,5 @@
 <?php
-namespace SixMQ\Api\Middlewares;
+namespace SixMQ\Api\Middleware;
 
 use Imi\RequestContext;
 use Psr\Http\Message\ResponseInterface;

@@ -5,7 +5,7 @@ return [
         'SixMQ\Api\Controller',
         'SixMQ\Api\Service',
         'SixMQ\Api\Enums',
-        'SixMQ\Api\Middlewares',
+        'SixMQ\Api\Middleware',
         'SixMQ\WorkerListener',
     ],
     'beans'	=>	[
@@ -40,7 +40,7 @@ return [
         ],
 		'HttpDispatcher'	=>	[
 			'middlewares'	=>	[
-                \SixMQ\Api\Middlewares\CrossDomain::class,
+                \SixMQ\Api\Middleware\CrossDomain::class,
 				\Imi\Server\Session\Middleware\HttpSessionMiddleware::class,
 				\Imi\Server\Http\Middleware\RouteMiddleware::class,
 			],

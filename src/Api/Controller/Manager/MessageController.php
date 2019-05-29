@@ -15,7 +15,7 @@ use SixMQ\Logic\MessageLogic;
 
 /**
  * @Controller("/message/")
- * @Middleware(\SixMQ\Api\Middlewares\LoginStatus::class)
+ * @Middleware(\SixMQ\Api\Middleware\LoginStatus::class)
  */
 class MessageController extends HttpController
 {

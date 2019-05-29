@@ -53,7 +53,7 @@ class AuthController extends HttpController
      * 
      * @Action
      *
-     * @Middleware(\SixMQ\Api\Middlewares\LoginStatus::class)
+     * @Middleware(\SixMQ\Api\Middleware\LoginStatus::class)
      * 
      * @return void
      */
