@@ -116,7 +116,6 @@ class Queue extends BaseProcess
                 $hasMessage = true;
                 $message = QueueService::getMessage($messageId);
                 $isDelay = $message->delay > 0;
-                $canNotifyPop = false;
                 MessageGroupLogic::setMessageStatus($queueId, $groupId, $message->messageId, GroupMessageStatus::WORKING);
                 MessageGroupLogic::setWorkingGroupMessage($message->queueId, $message->groupId, $message->messageId);
                 if($isDelay)
@@ -129,20 +128,12 @@ class Queue extends BaseProcess
                 }
                 else
                 {
-                    $canNotifyPop = true;
                     // 加入消息队列
                     QueueLogic::rpush($queueId, $messageId);
                     // 加入超时队列
                     if($message->timeout > -1)
                     {
                         TimeoutLogic::push($queueId, $messageId, microtime(true) + $message->timeout);
-                    }
-                }
-                if($hasMessage)
-                {
-                    if($canNotifyPop)
-                    {
-                        QueueService::parsePopBlock($message->queueId);
                     }
                 }
                 $break = true;

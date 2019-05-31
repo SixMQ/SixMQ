@@ -39,7 +39,6 @@ abstract class QueueService
     public static function push($data)
     {
         $messageId = null;
-        $canNotifyPop = false;
         // 生成消息ID
         $messageId = GenerateID::get();
         // 保存消息
@@ -73,7 +72,6 @@ abstract class QueueService
         }
         else
         {
-            $canNotifyPop = true;
             // 加入超时队列
             if($data->timeout > -1)
             {
@@ -99,10 +97,6 @@ abstract class QueueService
         if($success && !QueueLogic::has($data->queueId))
         {
             QueueLogic::append($data->queueId);
-        }
-        if($canNotifyPop)
-        {
-            static::parsePopBlock($data->queueId);
         }
         return $return;
     }
@@ -207,7 +201,6 @@ abstract class QueueService
             MessageLogic::set($messageId, $message);
             QueueLogic::rpush($queueId, $messageId);
             $message->inTime = microtime(true);
-            static::parsePopBlock($queueId);
         }
         else
         {
@@ -229,7 +222,6 @@ abstract class QueueService
      *
      * @param string $queueId
      * @param string $messageId
-     * @param boolean $isParsePopBlock
      * 
      * @return void
      */
@@ -246,7 +238,6 @@ abstract class QueueService
         // 加入队列
         QueueLogic::lpush($queueId, $messageId);
 
-        static::parsePopBlock($queueId);
     }
 
     /**
@@ -379,20 +370,6 @@ abstract class QueueService
     }
 
     /**
-     * 处理pop阻塞推送
-     *
-     * @param string $queueId
-     * @return void
-     */
-    public static function parsePopBlock($queueId)
-    {
-        // 处理pop阻塞推送
-        // imigo(function() use($queueId){
-            QueuePopBlockLogic::complete($queueId);
-        // });
-    }
-
-    /**
      * 消息超时处理
      *
      * @param string $queueId
@@ -443,7 +420,5 @@ abstract class QueueService
         {
             TimeoutLogic::push($message->queueId, $messageId, microtime(true) + $message->timeout);
         }
-
-        static::parsePopBlock($message->queueId);
     }
 }

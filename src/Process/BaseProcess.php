@@ -22,14 +22,7 @@ abstract class BaseProcess extends \Imi\Process\BaseProcess
                 $callable();
 
                 $subTime = microtime(true) - $beginTime;
-                if($subTime < $minTimespan)
-                {
-                    Coroutine::sleep($minTimespan - $subTime);
-                }
-                else
-                {
-                    Coroutine::sleep(0.001);
-                }
+                Coroutine::sleep(max($minTimespan - $subTime, 0.001));
             }
         });
     }

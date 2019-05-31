@@ -119,10 +119,8 @@ abstract class MessageLogic
         }
         $message->status = MessageStatus::FREE;
         static::set($message->messageId, $message);
-        $canNotifyPop = false;
         if(Text::isEmpty($message->groupId))
         {
-            $canNotifyPop = true;
             // 加入超时队列
             if($message->timeout > -1)
             {
@@ -141,10 +139,6 @@ abstract class MessageLogic
         if(!QueueLogic::has($message->queueId))
         {
             QueueLogic::append($message->queueId);
-        }
-        if($canNotifyPop)
-        {
-            QueueService::parsePopBlock($message->queueId);
         }
     }
 

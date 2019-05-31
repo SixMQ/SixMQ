@@ -38,66 +38,48 @@ abstract class QueuePopBlockLogic
         });
     }
 
-    /**
-     * 完成消息处理
-     *
-     * @param string $queueId
-     * @return void
-     */
-    public static function complete($queueId)
+    public static function parsePopBlockReply()
     {
-        Redis::use(function(RedisHandler $redis) use($queueId) {
-            $redis->publish('imi:popBlock', json_encode([
-                'queueId'   =>  $queueId,
-            ]));
-        });
-    }
-
-    /**
-     * 完成消息处理
-     *
-     * @param string $queueId
-     * @return void
-     */
-    public static function completeQueue($queueId)
-    {
-        PoolManager::use('redis', function($resource, $redis) use($queueId){
-            $server = ServerManage::getServer('MQService');
-            $swooleServer = $server->getSwooleServer();
-            do{
-                // 等待pop的队列弹出
-                $key = RedisKey::getQueuePopList($queueId);
-                $rawData = $redis->lpop($key);
-                if(!$rawData)
-                {
-                    break;
-                }
-                $data = json_decode($rawData, true);
-                // 超时判断
-                if(-1 !== $data['popData']['block'] && $data['time'] + $data['popData']['block'] <= microtime(true))
-                {
-                    continue;
-                }
-                $popData = (object)$data['popData'];
-                $popData->block = 0;
-                // 弹出消息
-                $popResult = QueueService::pop($popData, $redis);
-                if(!$popResult || !$popResult->success)
-                {
-                    break;
-                }
-                $popResult->flag = $popData->flag;
-                $sendData = DataParser::encode($popResult);
-                if($swooleServer->send($data['fd'], $sendData))
-                {
-                    ConnectContext::set('blockStatus', null, $data['fd']);
-                }
-                else
-                {
-                    QueueService::rollbackPop($queueId, $popResult->messageId);
-                }
-                break;
-            } while(true);
-        });
+        $server = ServerManage::getServer('MQService');
+        $swooleServer = $server->getSwooleServer();
+        foreach(QueueLogic::getList() as $queueId)
+        {
+            $queuePopListKey = RedisKey::getQueuePopList($queueId);
+            Redis::use(function(RedisHandler $redis) use($queueId, $queuePopListKey, $swooleServer) {
+                do {
+                    $rawData = $redis->lpop($queuePopListKey);
+                    if(!$rawData)
+                    {
+                        return;
+                    }
+                    $data = json_decode($rawData, true);
+                    // 超时判断
+                    if(-1 !== $data['popData']['block'] && $data['time'] + $data['popData']['block'] <= microtime(true))
+                    {
+                        continue;
+                    }
+                    $popData = (object)$data['popData'];
+                    $popData->block = 0;
+                    // 弹出消息
+                    $popResult = QueueService::pop($popData, $redis);
+                    if(!$popResult || !$popResult->success)
+                    {
+                        // 回队列重新等待
+                        $redis->lPush($queuePopListKey, $rawData);
+                        break;
+                    }
+                    $popResult->flag = $popData->flag;
+                    $sendData = DataParser::encode($popResult);
+                    if($swooleServer->send($data['fd'], $sendData))
+                    {
+                        ConnectContext::set('blockStatus', null, $data['fd']);
+                    }
+                    else
+                    {
+                        QueueService::rollbackPop($queueId, $popResult->messageId);
+                    }
+                } while(true);
+            });
+        }
     }
 }

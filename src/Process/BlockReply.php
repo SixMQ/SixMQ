@@ -16,20 +16,15 @@ class BlockReply extends BaseProcess
     public function run(\Swoole\Process $process)
     {
         echo 'Process [SixMQ-BlockReply] start', PHP_EOL;
-        imigo(function(){
+        $this->goTask(function(){
             $this->parsePopBlockReply();
-        });
+        }, 0.01);
     }
 
     private function parsePopBlockReply()
     {
         RequestContext::set('server', ServerManage::getServer('MQService'));
-        Redis::use(function(RedisHandler $redis) {
-            $redis->subscribe(['imi:popBlock'], function($instance, $channelName, $message){
-                $message = json_decode($message, true);
-                QueuePopBlockLogic::completeQueue($message['queueId']);
-            });
-        });
+        QueuePopBlockLogic::parsePopBlockReply();
     }
 
 }
