@@ -229,6 +229,8 @@ abstract class QueueService
      *
      * @param string $queueId
      * @param string $messageId
+     * @param boolean $isParsePopBlock
+     * 
      * @return void
      */
     public static function rollbackPop($queueId, $messageId)
@@ -243,6 +245,7 @@ abstract class QueueService
 
         // 加入队列
         QueueLogic::lpush($queueId, $messageId);
+
         static::parsePopBlock($queueId);
     }
 
@@ -384,9 +387,9 @@ abstract class QueueService
     public static function parsePopBlock($queueId)
     {
         // 处理pop阻塞推送
-        imigo(function() use($queueId){
+        // imigo(function() use($queueId){
             QueuePopBlockLogic::complete($queueId);
-        });
+        // });
     }
 
     /**

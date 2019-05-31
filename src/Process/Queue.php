@@ -4,7 +4,6 @@ namespace SixMQ\Process;
 use Swoole\Coroutine;
 use SixMQ\Util\RedisKey;
 use Imi\Pool\PoolManager;
-use Imi\Process\BaseProcess;
 use SixMQ\Service\QueueService;
 use SixMQ\Logic\QueueLogic;
 use Imi\Process\Annotation\Process;
@@ -14,6 +13,8 @@ use SixMQ\Logic\MessageWorkingLogic;
 use SixMQ\Logic\DelayLogic;
 use SixMQ\Logic\TimeoutLogic;
 use SixMQ\Logic\MessageLogic;
+use Imi\RequestContext;
+use Imi\ServerManage;
 
 /**
  * @Process(name="SixMQ-QueueMonitor", unique=true)
@@ -41,38 +42,9 @@ class Queue extends BaseProcess
         $this->goTask(function(){
             $this->parseDelayMessage();
         });
-        // 消息延迟
+        // 消息分组
         $this->goTask(function(){
             $this->parseMessageGroup();
-        });
-    }
-
-    /**
-     * 启动一个协程执行任务
-     *
-     * @param callable $callable
-     * @param int $minTimespan
-     * @return void
-     */
-    private function goTask($callable, $minTimespan = 1)
-    {
-        imigo(function() use($callable, $minTimespan){
-            while(true)
-            {
-                $beginTime = microtime(true);
-                
-                $callable();
-
-                $subTime = microtime(true) - $beginTime;
-                if($subTime < $minTimespan)
-                {
-                    Coroutine::sleep($minTimespan - $subTime);
-                }
-                else
-                {
-                    Coroutine::sleep(0.001);
-                }
-            }
         });
     }
 
@@ -133,6 +105,7 @@ class Queue extends BaseProcess
      */
     private function parseMessageGroup()
     {
+        RequestContext::set('server', ServerManage::getServer('MQService'));
         MessageGroupLogic::eachGroups(function($redis, $queueId, $groupId, $workingMessageId, &$break){
             if('' !== $workingMessageId)
             {

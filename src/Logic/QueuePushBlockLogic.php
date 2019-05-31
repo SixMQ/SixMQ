@@ -2,6 +2,7 @@
 namespace SixMQ\Logic;
 
 use Imi\ServerManage;
+use Imi\ConnectContext;
 use SixMQ\Util\RedisKey;
 use Imi\Pool\PoolManager;
 use SixMQ\Util\HashTable;
@@ -23,11 +24,16 @@ abstract class QueuePushBlockLogic
     public static function add($fd, $data, $return)
     {
         $return->flag = $data->flag;
-        HashTable::set(HashTableNames::QUEUE_PUSH_BLOCK, $return->messageId, [
+        $saveData = [
             'fd'            =>    $fd,
-            'pushData'        =>    $data,
+            'pushData'      =>    $data,
             'serverPush'    =>    $return,
-            'time'            =>    microtime(true),
+            'time'          =>    microtime(true),
+        ];
+        HashTable::set(HashTableNames::QUEUE_PUSH_BLOCK, $return->messageId, json_encode($saveData));
+        ConnectContext::set('blockStatus', [
+            'type'  =>  'push',
+            'data'  =>  $saveData,
         ]);
     }
 
@@ -41,16 +47,23 @@ abstract class QueuePushBlockLogic
     {
         $data = HashTable::get(HashTableNames::QUEUE_PUSH_BLOCK, $messageId);
         HashTable::del(HashTableNames::QUEUE_PUSH_BLOCK, $messageId);
-        if(isset($data['fd']) && (-1 === $data['pushData']->block || $data['time'] + $data['pushData']->block > microtime(true)))
+        if($data)
+        {
+            $data = json_decode($data, true);
+        }
+        if(isset($data['fd']) && (-1 === $data['pushData']['block'] || $data['time'] + $data['pushData']['block'] > microtime(true)))
         {
             $message = QueueService::getMessage($messageId);
-            $data['serverPush']->consum = $message->consum;
-            $data['serverPush']->resultSuccess = $message->success;
-            $data['serverPush']->resultData = $message->resultData;
+            $data['serverPush']['consum'] = $message->consum;
+            $data['serverPush']['resultSuccess'] = $message->success;
+            $data['serverPush']['resultData'] = $message->resultData;
             $server = ServerManage::getServer('MQService');
             $swooleServer = $server->getSwooleServer();
             $sendData = DataParser::encode($data['serverPush']);
-            $swooleServer->send($data['fd'], $sendData);
+            if($swooleServer->send($data['fd'], $sendData))
+            {
+                ConnectContext::set('blockStatus', null, $data['fd']);
+            }
         }
     }
 }

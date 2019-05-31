@@ -19,7 +19,7 @@ return [
         'port'        =>    8089,
         'configs'    =>    [
             // 开发时可以都设为1
-            'worker_num'        => 1,
+            'worker_num'        => 2,
             'task_worker_num'   => 0,
             // 'worker_num'        => 8, // 设置为CPU的1-4倍最合理
             // 'task_worker_num'   => 8, // 根据实际情况设置
@@ -91,6 +91,10 @@ return [
                 ]
             ],
         ],
+    ],
+    'redis' =>  [
+        'defaultPool'               =>  'redis',
+        'quickFromRequestContext'   =>  false,
     ],
     'coroutineChannels'        =>    [
         'PopBlockQueue'        =>    [64 * 1024],

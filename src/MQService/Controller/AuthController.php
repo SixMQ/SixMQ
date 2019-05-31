@@ -21,6 +21,13 @@ class AuthController extends Base
     protected $authService;
 
     /**
+     * @Inject("ConnectionService")
+     *
+     * @var \SixMQ\Service\ConnectionService
+     */
+    protected $connectionService;
+
+    /**
      * 登录
      * 
      * @TcpAction
@@ -45,7 +52,11 @@ class AuthController extends Base
             $reply->error = 'Login failed';
         }
         $this->reply($reply);
-        if(!$result)
+        if($result)
+        {
+            $this->connectionService->addConnection($this->data->getFd());
+        }
+        else
         {
             $this->server->getSwooleServer()->close($this->data->getFd());
         }

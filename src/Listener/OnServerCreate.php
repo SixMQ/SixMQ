@@ -29,5 +29,7 @@ class OnServerCreate implements IEventListener
         ProcessManager::runWithManager('SixMQ-QueueMonitor');
         // 消息超时
         ProcessManager::runWithManager('SixMQ-MessageTTL');
+        // 阻塞回复
+        ProcessManager::runWithManager('SixMQ-BlockReply');
     }
 }
