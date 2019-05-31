@@ -22,7 +22,7 @@ class ApiAuthService
      */
     public function login($username, $password)
     {
-        if(Config::get('auth.accounts' . $username . '.password') !== $password)
+        if(Config::get('auth.accounts.' . $username . '.password') !== $password)
         {
             throw new \RuntimeException('登录失败');
         }

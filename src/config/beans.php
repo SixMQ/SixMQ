@@ -17,6 +17,7 @@ return [
         'excludePaths'    =>    [
             dirname(__DIR__) . '/bin',
             dirname(__DIR__) . '/Process',
+            dirname(__DIR__) . '/logs',
         ], // 要排除的路径数组，支持通配符*
         // 'defaultPath'    =>    [], // 设为数组则覆盖默认的监控路径
     ],
