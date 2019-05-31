@@ -58,6 +58,11 @@ abstract class QueuePopBlockLogic
                     {
                         continue;
                     }
+                    // fd有效判断
+                    if(!$swooleServer->exist($data['fd']))
+                    {
+                        continue;
+                    }
                     $popData = (object)$data['popData'];
                     $popData->block = 0;
                     // 弹出消息

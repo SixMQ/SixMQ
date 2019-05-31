@@ -31,6 +31,7 @@ abstract class QueuePushBlockLogic
             'time'          =>    microtime(true),
         ];
         HashTable::set(HashTableNames::QUEUE_PUSH_BLOCK, $return->messageId, json_encode($saveData));
+        $saveData['messageId'] = $return->messageId;
         ConnectContext::set('blockStatus', [
             'type'  =>  'push',
             'data'  =>  $saveData,

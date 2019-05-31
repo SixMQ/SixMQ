@@ -13,7 +13,7 @@ abstract class HashTable
      */
     public static function init($hashTableName)
     {
-        static::clear(static::getHashTableKey($hashTableName));
+        static::clear($hashTableName);
     }
 
     /**
