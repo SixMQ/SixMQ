@@ -52,11 +52,7 @@ class AuthController extends Base
             $reply->error = 'Login failed';
         }
         $this->reply($reply);
-        if($result)
-        {
-            $this->connectionService->addConnection($this->data->getFd());
-        }
-        else
+        if(!$result)
         {
             $this->server->getSwooleServer()->close($this->data->getFd());
         }
