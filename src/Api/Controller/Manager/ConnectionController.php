@@ -1,13 +1,15 @@
 <?php
 namespace SixMQ\Api\Controller\Manager;
 
+use Imi\Worker;
+use Imi\ConnectContext;
 use Imi\Aop\Annotation\Inject;
 use Imi\Controller\HttpController;
+use Imi\Server\Route\Annotation\Route;
 use Imi\Server\Route\Annotation\Action;
 use Imi\Server\Route\Annotation\Controller;
 use Imi\Server\Route\Annotation\Middleware;
-use Imi\Worker;
-use Imi\ConnectContext;
+use SixMQ\Api\Exception\ApiException;
 
 /**
  * @Controller("/connection/")
@@ -40,6 +42,24 @@ class ConnectionController extends HttpController
             'count' =>  $count,
             'pages' =>  $pages,
         ];
+    }
+
+    /**
+     * 断开连接
+     * 
+     * @Action
+     * 
+     * @Route(method="POST")
+     *
+     * @param int $fd
+     * @return void
+     */
+    public function close($fd)
+    {
+        if(!$this->request->getServerInstance()->getSwooleServer()->close($fd))
+        {
+            throw ApiException::fromMessage('断开失败');
+        }
     }
 
 }
