@@ -84,7 +84,7 @@ class Queue extends Base
     public function getMessage($data)
     {
         $message = QueueService::getMessage($data->messageId);
-        $success = false !== $message;
+        $success = null !== $message;
         $reply = new GetMessage($success);
         $reply->messageId = $data->messageId;
         if($success)

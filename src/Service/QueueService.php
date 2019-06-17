@@ -309,7 +309,7 @@ abstract class QueueService
      * 获取消息数据
      *
      * @param string $messageId
-     * @return \SixMQ\Struct\Queue\Message|boolean
+     * @return \SixMQ\Struct\Queue\Message|null
      */
     public static function getMessage($messageId)
     {
