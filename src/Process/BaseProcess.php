@@ -2,9 +2,17 @@
 namespace SixMQ\Process;
 
 use Swoole\Coroutine;
+use Imi\RequestContext;
+use Imi\ServerManage;
 
 abstract class BaseProcess extends \Imi\Process\BaseProcess
 {
+    public function __construct($data = [])
+    {
+        parent::__construct($data);
+        RequestContext::set('server', ServerManage::getServer('MQService'));
+    }
+
     /**
      * 启动一个协程执行任务
      *
