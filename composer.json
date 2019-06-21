@@ -5,8 +5,8 @@
 	"description": "SixMQ 是基于 IMI 框架 (PHP + Swoole) 开发的 PHP 消息队列",
     "require": {
         "php": ">=7.0.0",
-        "yurunsoft/imi": "dev-dev",
-		"sixmq/sixmq-struct": "dev-master"
+        "yurunsoft/imi": "^1.0",
+		"sixmq/sixmq-struct": "^1.0"
     },
     "require-dev": {
         "swoft/swoole-ide-helper": "~2.0"
