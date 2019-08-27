@@ -99,4 +99,17 @@ return [
     'coroutineChannels'        =>    [
         'PopBlockQueue'        =>    [64 * 1024],
     ],
+    // 锁
+    'lock'  =>[
+        'list'  =>  [
+            // 锁 ID => 配置
+            'redis' =>  [
+                'class' =>  'RedisLock', // Handler 类 Bean 名或完整类名
+                'options'   =>  [
+                    // Handler 类所需配置
+                    'poolName'  =>  'redis',
+                ],
+            ],
+        ],
+    ],
 ];
