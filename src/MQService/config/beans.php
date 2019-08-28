@@ -9,7 +9,6 @@ return [
     'TcpDispatcher'    =>    [
         'middlewares'    =>    [
             \Imi\Server\TcpServer\Middleware\RouteMiddleware::class,
-            \Imi\Server\TcpServer\Middleware\ActionMiddleware::class,
         ],
     ],
 ];
