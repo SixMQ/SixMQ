@@ -13,7 +13,7 @@ use Imi\Server\Event\Param\ConnectEventParam;
 use Imi\Server\Event\Listener\IConnectEventListener;
 
 /**
- * @ClassEventListener(className="Imi\Server\TcpServer\Server",eventName="connect",priority=PHP_INT_MAX)
+ * @ClassEventListener(className="Imi\Server\TcpServer\Server",eventName="connect",priority=19940311)
  */
 class OnConnect implements IConnectEventListener
 {

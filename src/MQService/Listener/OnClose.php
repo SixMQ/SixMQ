@@ -13,7 +13,7 @@ use Imi\Server\Event\Param\CloseEventParam;
 use Imi\Server\Event\Listener\ICloseEventListener;
 
 /**
- * @ClassEventListener(className="Imi\Server\TcpServer\Server",eventName="close",priority=PHP_INT_MAX)
+ * @ClassEventListener(className="Imi\Server\TcpServer\Server",eventName="close",priority=19940311)
  */
 class OnClose implements ICloseEventListener
 {
