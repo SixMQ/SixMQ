@@ -23,19 +23,30 @@ abstract class QueuePopBlockLogic
      */
     public static function add($fd, $data)
     {
-        PoolManager::use('redis', function($resource, $redis) use($fd, $data){
-            $key = RedisKey::getQueuePopList($data->queueId);
-            $saveData = [
+        $saveDatas = [];
+        foreach(is_array($data->queueId) ? $data->queueId : [$data->queueId] as $queueId)
+        {
+            $popData = clone $data;
+            $popData->queueId = $queueId;
+            $saveDatas[] = [
                 'fd'        =>    $fd,
-                'popData'   =>    $data,
+                'popData'   =>    $popData,
                 'time'      =>    microtime(true),
             ];
-            $redis->rpush($key, json_encode($saveData));
-            ConnectContext::set('blockStatus', [
-                'type'  =>  'pop',
-                'data'  =>  $saveData,
-            ]);
+        }
+        PoolManager::use('redis', function($resource, RedisHandler $redis) use($fd, $data, $saveDatas){
+            $redis->multi();
+            foreach($saveDatas as $saveData)
+            {
+                $key = RedisKey::getQueuePopList($saveData['popData']->queueId);
+                $redis->rpush($key, json_encode($saveData));
+            }
+            $redis->exec();
         });
+        ConnectContext::set('blockStatus', [
+            'type'  =>  'pop',
+            'data'  =>  $saveDatas,
+        ], $fd);
     }
 
     public static function parsePopBlockReply()
@@ -77,7 +88,11 @@ abstract class QueuePopBlockLogic
                     $sendData = DataParser::encode($popResult);
                     if($swooleServer->send($data['fd'], $sendData))
                     {
-                        ConnectContext::set('blockStatus', null, $data['fd']);
+                        ConnectContext::use(function($data) use($redis){
+                            static::removePopItem($data['blockStatus']['data']);
+                            unset($data['blockStatus']);
+                            return $data;
+                        }, $data['fd']);
                     }
                     else
                     {
@@ -85,6 +100,20 @@ abstract class QueuePopBlockLogic
                     }
                 } while(true);
             });
+        }
+    }
+
+    /**
+     * 移除pop项监听
+     *
+     * @param array $items
+     * @return void
+     */
+    public static function removePopItem($items)
+    {
+        foreach($items as $item)
+        {
+            Redis::lrem(RedisKey::getQueuePopList($item['popData']['queueId']), json_encode($item), 0);
         }
     }
 }

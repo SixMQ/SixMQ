@@ -11,6 +11,7 @@ use SixMQ\Util\HashTableNames;
 use Imi\Bean\Annotation\ClassEventListener;
 use Imi\Server\Event\Param\CloseEventParam;
 use Imi\Server\Event\Listener\ICloseEventListener;
+use SixMQ\Logic\QueuePopBlockLogic;
 
 /**
  * @ClassEventListener(className="Imi\Server\TcpServer\Server",eventName="close",priority=19940311)
@@ -26,9 +27,16 @@ class OnClose implements ICloseEventListener
     {
         // 移除push相关数据
         $blockStatus = ConnectContext::get('blockStatus');
-        if($blockStatus && 'push' === $blockStatus['type'])
+        if(isset($blockStatus['type']))
         {
-            HashTable::del(HashTableNames::QUEUE_PUSH_BLOCK, $blockStatus['data']['messageId']);
+            if('push' === $blockStatus['type'])
+            {
+                HashTable::del(HashTableNames::QUEUE_PUSH_BLOCK, $blockStatus['data']['messageId']);
+            }
+            else
+            {
+                QueuePopBlockLogic::removePopItem($blockStatus['data']);
+            }
         }
         // 移除连接
         App::getBean('ConnectionService')->removeConnection($e->fd);

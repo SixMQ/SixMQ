@@ -122,7 +122,7 @@ abstract class QueueService
         $return = new Pop($result);
         if($result)
         {
-            $return->queueId = $data->queueId;
+            $return->queueId = $message->queueId;
             $return->messageId = $messageId;
             $return->data = $message;
         }
@@ -141,27 +141,31 @@ abstract class QueueService
     private static function tryPop($data, &$messageId, &$message, $redis = null)
     {
         $func = function($resource, $redis) use($data, &$messageId, &$message){
-            // 取出消息ID
-            $messageId = QueueLogic::lpop($data->queueId);
-            if(!$messageId)
+            foreach(is_array($data->queueId) ? $data->queueId : [$data->queueId] as $queueId)
             {
-                return false;
+                // 取出消息ID
+                $messageId = QueueLogic::lpop($queueId);
+                if(!$messageId)
+                {
+                    continue;
+                }
+                // 取出消息
+                $message = MessageLogic::get($messageId);
+                // 消息超时判断
+                if(!$message || ($message->timeout > -1 && $message->inTime + $message->timeout <= microtime(true)))
+                {
+                    continue;
+                }
+                // 保存消息
+                $message->status = MessageStatus::WORKING;
+                MessageLogic::set($messageId, $message);
+                // 消息处理最大超时时间
+                $expireTime = microtime(true) + $data->maxExpire;
+                // 加入工作集合
+                MessageWorkingLogic::add($queueId, $messageId, $expireTime);
+                return true;
             }
-            // 取出消息
-            $message = MessageLogic::get($messageId);
-            // 消息超时判断
-            if(!$message || ($message->timeout > -1 && $message->inTime + $message->timeout <= microtime(true)))
-            {
-                return false;
-            }
-            // 保存消息
-            $message->status = MessageStatus::WORKING;
-            MessageLogic::set($messageId, $message);
-            // 消息处理最大超时时间
-            $expireTime = microtime(true) + $data->maxExpire;
-            // 加入工作集合
-            MessageWorkingLogic::add($data->queueId, $messageId, $expireTime);
-            return true;
+            return false;
         };
         if(null === $redis)
         {
@@ -257,18 +261,18 @@ abstract class QueueService
         }
 
         // 移出集合队列
-        MessageWorkingLogic::remove($data->queueId, $data->messageId);
+        MessageWorkingLogic::remove($message->queueId, $data->messageId);
 
         // 移除队列（先触发了失败重新入队，尝试出列）
 
         if($data->success && Config::get('@app.common.drop_message_when_complete'))
         {
-            QueueLogic::remove($data->queueId, $data->messageId, true);
+            QueueLogic::remove($message->queueId, $data->messageId, true);
             MessageLogic::removeMessage($message->messageId);
         }
         else
         {
-            QueueLogic::remove($data->queueId, $data->messageId, false);
+            QueueLogic::remove($message->queueId, $data->messageId, false);
             $message->consum = true;
             $message->success = $data->success;
             $message->resultData = $data->data;
