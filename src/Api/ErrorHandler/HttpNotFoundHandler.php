@@ -1,14 +1,15 @@
 <?php
 namespace SixMQ\Api\ErrorHandler;
 
+use Imi\RequestContext;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 use Imi\Server\Http\Error\IHttpNotFoundHandler;
-use Imi\RequestContext;
 
 class HttpNotFoundHandler implements IHttpNotFoundHandler
 {
-    public function handle(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    public function handle(RequestHandlerInterface $requesthandler, ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         if('/favicon.ico' === $request->getUri()->getPath())
         {
