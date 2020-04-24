@@ -18,7 +18,7 @@ class BlockReply extends BaseProcess
         echo 'Process [SixMQ-BlockReply] start', PHP_EOL;
         $this->goTask(function(){
             $this->parsePopBlockReply();
-        }, 0.01);
+        }, 0.1);
     }
 
     private function parsePopBlockReply()
