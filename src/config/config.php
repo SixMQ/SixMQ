@@ -17,6 +17,7 @@ return [
         'type'        =>    Type::HTTP,
         'host'        =>    '0.0.0.0',
         'port'        =>    8089,
+        'mode'      =>  SWOOLE_BASE,
         'configs'    =>    [
             // 开发时可以都设为1
             'worker_num'        => 2,
